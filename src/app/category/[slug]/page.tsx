@@ -20,7 +20,7 @@ export default async function CategoryPage({
   return (
     <main className="mx-auto max-w-5xl px-6 py-14">
       <Link href="/" className="text-sm text-bnb-muted hover:text-bnb-gold">
-        &larr; Todas las categorías
+        &larr; All categories
       </Link>
       <h1 className="mt-3 text-3xl font-bold text-bnb-text">{category.label}</h1>
       <p className="mt-1 text-bnb-muted">{category.ruleOfThumb}</p>
@@ -29,10 +29,10 @@ export default async function CategoryPage({
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-bnb-card text-bnb-muted">
             <tr>
-              <th className="px-4 py-3 font-medium">Agente</th>
-              <th className="px-4 py-3 font-medium">Protocolo</th>
-              <th className="px-4 py-3 font-medium">Estado</th>
-              <th className="px-4 py-3 font-medium">Tx onchain</th>
+              <th className="px-4 py-3 font-medium">Agent</th>
+              <th className="px-4 py-3 font-medium">Protocol</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Onchain tx</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
@@ -52,7 +52,7 @@ export default async function CategoryPage({
                     href={`/agent/${agent.id}`}
                     className="rounded-md bg-bnb-gold px-3 py-1.5 text-xs font-semibold text-bnb-carbon hover:bg-bnb-gold/90"
                   >
-                    Ver ficha
+                    View profile
                   </Link>
                 </td>
               </tr>
@@ -60,7 +60,7 @@ export default async function CategoryPage({
             {agents.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-bnb-muted">
-                  Sin agentes en esta categoría todavía.
+                  No agents in this category yet.
                 </td>
               </tr>
             )}

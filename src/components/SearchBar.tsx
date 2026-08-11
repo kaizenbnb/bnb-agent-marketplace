@@ -18,14 +18,14 @@ export default function SearchBar({ initialQuery = "" }: { initialQuery?: string
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Buscar agentes por nombre, protocolo o categoría..."
+        placeholder="Search agents by name, protocol or category..."
         className="flex-1 rounded-md border border-bnb-line bg-bnb-card px-4 py-2 text-sm text-bnb-text placeholder:text-bnb-muted focus:border-bnb-gold focus:outline-none"
       />
       <button
         type="submit"
         className="rounded-md bg-bnb-gold px-4 py-2 text-sm font-semibold text-bnb-carbon hover:bg-bnb-gold/90"
       >
-        Buscar
+        Search
       </button>
     </form>
   );

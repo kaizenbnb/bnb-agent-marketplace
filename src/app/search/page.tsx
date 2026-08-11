@@ -14,10 +14,10 @@ export default async function SearchPage({
   return (
     <main className="mx-auto max-w-5xl px-6 py-14">
       <Link href="/" className="text-sm text-bnb-muted hover:text-bnb-gold">
-        &larr; Inicio
+        &larr; Home
       </Link>
       <h1 className="mt-3 text-2xl font-bold text-bnb-text">
-        {q ? `Resultados para "${q}"` : "Todos los agentes"}
+        {q ? `Results for "${q}"` : "All agents"}
       </h1>
 
       <div className="mt-6">
@@ -29,7 +29,7 @@ export default async function SearchPage({
           <AgentCard key={agent.id} agent={agent} />
         ))}
         {results.length === 0 && (
-          <p className="text-bnb-muted">Sin resultados. Prueba con "yield", "grid", "venus", "pancakeswap"...</p>
+          <p className="text-bnb-muted">No results. Try "yield", "grid", "venus", "pancakeswap"...</p>
         )}
       </div>
     </main>

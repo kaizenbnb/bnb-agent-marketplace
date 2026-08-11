@@ -15,7 +15,7 @@ export default function AgentCard({ agent }: { agent: Agent }) {
       </div>
       <p className="mt-1 text-xs text-bnb-muted">{agent.protocol}</p>
       <p className="mt-3 text-sm text-bnb-text/80">{agent.summary}</p>
-      <p className="mt-3 text-xs text-bnb-muted">{agent.transactions.length} tx onchain verificable{agent.transactions.length !== 1 ? "s" : ""}</p>
+      <p className="mt-3 text-xs text-bnb-muted">{agent.transactions.length} verifiable onchain tx{agent.transactions.length !== 1 ? "s" : ""}</p>
     </Link>
   );
 }

@@ -14,14 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BNB Agent Studio Marketplace",
-  description: "Marketplace de agentes ERC-8004 verificados en BNB Chain testnet",
+  title: "KaizenScope — BNB Agent Marketplace",
+  description: "Marketplace of verified ERC-8004 agents live on BNB Chain testnet",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="es"
+      lang="en"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bnb-carbon text-bnb-text">

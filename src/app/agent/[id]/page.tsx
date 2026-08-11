@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AGENTS, getAgent, getCategory, EXPLORER_TX_BASE, EXPLORER_ADDRESS_BASE } from "@/lib/agents";
 import HireButton from "@/components/HireButton";
+import HealthFactorGauge from "@/components/HealthFactorGauge";
 
 export function generateStaticParams() {
   return AGENTS.map((a) => ({ id: a.id }));
@@ -38,7 +39,7 @@ export default async function AgentPage({
       <p className="mt-6 text-bnb-text/80">{agent.description}</p>
 
       <div className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-bnb-muted">Wallet agéntica</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-bnb-muted">Agentic Wallet</h2>
         <a
           href={`${EXPLORER_ADDRESS_BASE}${agent.wallet}`}
           target="_blank"
@@ -49,8 +50,14 @@ export default async function AgentPage({
         </a>
       </div>
 
+      {agent.healthFactorGauge && (
+        <div className="mt-8">
+          <HealthFactorGauge {...agent.healthFactorGauge} />
+        </div>
+      )}
+
       <div className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-bnb-muted">Métricas reales</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-bnb-muted">Real Metrics</h2>
         <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {agent.metrics.map((m) => (
             <div
@@ -66,7 +73,7 @@ export default async function AgentPage({
 
       <div className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-bnb-muted">
-          Transacciones onchain ({agent.transactions.length})
+          Onchain Transactions ({agent.transactions.length})
         </h2>
         <ul className="mt-3 space-y-2">
           {agent.transactions.map((tx) => (
@@ -89,7 +96,7 @@ export default async function AgentPage({
 
       {agent.caveat && (
         <div className="mt-8 rounded-lg border border-amber-900/50 bg-amber-950/30 p-4 text-sm text-amber-300">
-          <strong className="font-semibold">Nota honesta:</strong> {agent.caveat}
+          <strong className="font-semibold">Honest note:</strong> {agent.caveat}
         </div>
       )}
 

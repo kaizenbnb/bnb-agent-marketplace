@@ -8,6 +8,7 @@ export type Category = {
 
 export type Metric = { label: string; value: string };
 export type Transaction = { label: string; hash: string };
+export type HealthFactorGaugeData = { before: number; after: number; threshold: number };
 
 export type Agent = {
   id: string;
@@ -22,6 +23,7 @@ export type Agent = {
   metrics: Metric[];
   transactions: Transaction[];
   caveat?: string;
+  healthFactorGauge?: HealthFactorGaugeData;
 };
 
 export const EXPLORER_TX_BASE = "https://testnet.bscscan.com/tx/";
@@ -60,21 +62,22 @@ export const AGENTS: Agent[] = [
     protocol: "Venus Protocol (Core Pool)",
     chain: "BNB Smart Chain Testnet",
     wallet: WALLET,
-    summary: "Compara APR entre Venus, Aave V3 y Lista; suministra al mejor disponible en la red actual.",
+    summary:
+      "Compares APR across Venus, Aave V3 and Lista, and supplies to whichever is actually available on the current network.",
     description:
-      "Arquitectura para 3 protocolos. En BSC testnet solo Venus tiene deployment real (Aave V3 y Lista no tienen presencia en chain 97, verificado contra el address-book oficial de Aave y los repos de Lista). El agente lee las 3 tasas, marca las no disponibles con motivo explícito, y ejecuta solo sobre la rama real.",
+      "Built for 3 protocols. On BSC testnet only Venus has a real deployment — Aave V3 and Lista have no presence on chain 97, verified against Aave's official address book and Lista's repos. The agent reads all 3 rates, flags the unavailable ones with an explicit reason, and only executes on the real branch.",
     status: "live-testnet",
     metrics: [
-      { label: "Fuentes evaluadas", value: "3 (Venus, Aave V3, Lista)" },
-      { label: "Disponibles en testnet", value: "1 de 3 (solo Venus)" },
-      { label: "Protocolo activo", value: "Venus Core Pool — vUSDT" },
+      { label: "Sources evaluated", value: "3 (Venus, Aave V3, Lista)" },
+      { label: "Available on testnet", value: "1 of 3 (Venus only)" },
+      { label: "Active protocol", value: "Venus Core Pool — vUSDT" },
     ],
     transactions: [
-      { label: "Seed de USDT de prueba", hash: "0x7c77f729d85789d5811ff02d8da9971d0902112cb412c49ec60a4de3a5de2b1c" },
-      { label: "Supply en Venus", hash: "0x3cb2f287b53d26077d4169638910ecb7d4b42319899d2e8f9d823ccd3f527672" },
+      { label: "Seed test USDT", hash: "0x7c77f729d85789d5811ff02d8da9971d0902112cb412c49ec60a4de3a5de2b1c" },
+      { label: "Supply to Venus", hash: "0x3cb2f287b53d26077d4169638910ecb7d4b42319899d2e8f9d823ccd3f527672" },
     ],
     caveat:
-      "Los importes de USDT minteados en esta fase quedaron afectados por un bug de decimales (18 asumidos vs 6 reales) documentado en AGENT_LOG.md — las tx son reales y verificables, las cifras absolutas de USDT no se muestran aquí por esa razón.",
+      "The USDT amounts minted in this phase were affected by a decimals bug (18 assumed vs. 6 real) documented in AGENT_LOG.md — the transactions are real and verifiable; absolute USDT figures are omitted here for that reason.",
   },
   {
     id: "health-factor-venus",
@@ -83,23 +86,22 @@ export const AGENTS: Agent[] = [
     protocol: "Venus Protocol (Comptroller + vBNB + vUSDT)",
     chain: "BNB Smart Chain Testnet",
     wallet: WALLET,
-    summary: "Crea una posición con deuda real, monitoriza el health factor y repaga parcialmente si cae del umbral.",
+    summary:
+      "Opens a position with real debt, monitors its health factor, and partially repays it if it drops below threshold.",
     description:
-      "borrow/repay no están en la skill oficial de Venus Lending (solo-supply) — se componen a mano contra el Comptroller (Unitroller) y vBNB/vUSDT. Colateral: 0.05 tBNB. Borrow: 43.2 USDT reales (90% de la capacidad calculada desde getAccountLiquidity real). El health factor se calculó de forma aislada (colateral BNB real vs deuda real) para evitar la contaminación de una posición legado.",
+      "borrow/repay aren't in the official Venus Lending skill (supply-only) — composed by hand against the Comptroller (Unitroller) and vBNB/vUSDT. Collateral: 0.05 tBNB. Borrowed: 43.2 real USDT (90% of the capacity computed from a live getAccountLiquidity read). The health factor was calculated in isolation (real BNB collateral vs. real debt) to avoid contamination from a legacy position.",
     status: "live-testnet",
     metrics: [
-      { label: "Colateral", value: "0.05 tBNB" },
-      { label: "Deuda (borrow)", value: "43.2 USDT reales" },
-      { label: "Health Factor inicial", value: "0.9722 (posición en riesgo real)" },
-      { label: "Health Factor final", value: "1.3889 (tras repago parcial)" },
-      { label: "Umbral configurado", value: "1.15" },
+      { label: "Collateral", value: "0.05 tBNB" },
+      { label: "Debt (borrow)", value: "43.2 real USDT" },
     ],
     transactions: [
-      { label: "Borrow (90% de capacidad)", hash: "0x3b4317c9eba9d4734785f61051920d766f82593694ace2e6be40badc28b73775" },
-      { label: "Repago parcial (acción protectora)", hash: "0x557c3171ea77fba6c53ccaafbd73719589c5d147c9977b158201c222363392c1" },
+      { label: "Borrow (90% of capacity)", hash: "0x3b4317c9eba9d4734785f61051920d766f82593694ace2e6be40badc28b73775" },
+      { label: "Partial repay (protective action)", hash: "0x557c3171ea77fba6c53ccaafbd73719589c5d147c9977b158201c222363392c1" },
     ],
     caveat:
-      "El repago se ejecutó por el path admin: repayBorrow() no está soportado vía sesión scoped en @altananetwork/sdk@0.7.0 (NoSpendPermissions sea cual sea el permiso declarado) — documentado en AGENT_LOG.md.",
+      "The repay was executed via the admin path: repayBorrow() isn't supported through a scoped session in @altananetwork/sdk@0.7.0 (NoSpendPermissions regardless of the declared permission) — documented in AGENT_LOG.md.",
+    healthFactorGauge: { before: 0.9722, after: 1.3889, threshold: 1.15 },
   },
   {
     id: "grid-pancakeswap-v2",
@@ -108,21 +110,21 @@ export const AGENTS: Agent[] = [
     protocol: "PancakeSwap V2 (Router)",
     chain: "BNB Smart Chain Testnet",
     wallet: WALLET,
-    summary: "Vigila el precio del par WBNB/BUSD y dispara un swap al cruzar un umbral de la rejilla.",
+    summary: "Watches the WBNB/BUSD pair's price and fires a swap whenever it crosses a grid threshold.",
     description:
-      "No hay skill de grid trading en Altana — se compone con getAmountsOut + swapExactETHForTokens/swapExactTokensForETH más un loop de umbrales propio. El primer par candidato (WBNB/USDT-Venus) estaba inflado por un bug de decimales ajeno; se usó WBNB/BUSD-testnet oficial, razonablemente escalado (12.5 WBNB de reserva). Rejilla calibrada a 0.4% de paso según el capital real disponible.",
+      "There's no grid-trading skill in Altana — composed with getAmountsOut + swapExactETHForTokens/swapExactTokensForETH plus a custom threshold loop. The first candidate pair (WBNB/USDT-Venus) was inflated by another team's decimals bug; switched to the official WBNB/BUSD testnet pair, reasonably scaled (12.5 WBNB in reserves). Grid calibrated to a 0.4% step based on the actual available capital.",
     status: "live-testnet",
     metrics: [
-      { label: "Par", value: "WBNB / BUSD (testnet oficial)" },
-      { label: "Rejilla", value: "5 niveles, paso 0.4%" },
-      { label: "Tamaño de orden", value: "0.05 BNB" },
-      { label: "Movimiento tras kick-off", value: "-0.763% vs precio base" },
+      { label: "Pair", value: "WBNB / BUSD (official testnet)" },
+      { label: "Grid", value: "5 levels, 0.4% step" },
+      { label: "Order size", value: "0.05 BNB" },
+      { label: "Move after kick-off", value: "-0.763% vs. base price" },
     ],
     transactions: [
-      { label: "Kick-off: venta inicial (BNB → BUSD)", hash: "0xa5c689a0a3684935cf6d1446eaad9a3903c8471f152be9cd1b42debd58706e91" },
+      { label: "Kick-off: initial sell (BNB → BUSD)", hash: "0xa5c689a0a3684935cf6d1446eaad9a3903c8471f152be9cd1b42debd58706e91" },
     ],
     caveat:
-      "Solo se registró 1 cruce de rejilla real en la ventana de prueba por falta de actividad externa en el pool — el mecanismo de umbral quedó verificado, no es un rebalanceador en bucle continuo desplegado 24/7.",
+      "Only 1 real grid crossing was recorded during the test window due to a lack of external activity in the pool — the threshold mechanism was verified; this isn't a continuous 24/7 looping rebalancer.",
   },
   {
     id: "rebalancing-pancakeswap-v3",
@@ -131,20 +133,20 @@ export const AGENTS: Agent[] = [
     protocol: "PancakeSwap V3 (NonfungiblePositionManager)",
     chain: "BNB Smart Chain Testnet",
     wallet: WALLET,
-    summary: "Abre una posición de liquidez concentrada y la reposiciona una vez a un rango desplazado.",
+    summary: "Opens a concentrated liquidity position and repositions it once to a shifted range.",
     description:
-      "No hay skill de liquidez V3 en Altana (solo V2) ni de rebalancing — todo compuesto a mano contra el NonfungiblePositionManager de testnet (dirección distinta de mainnet). Gate de infraestructura en 2 partes antes de construir: V3 desplegado en testnet (sí) y pool con liquidez sana (WBNB/BUSD V3 estaba vacío en los 4 fee tiers; WBNB/USDT-oficial al 0.25% sí tenía liquidez real).",
+      "There's no V3 liquidity skill in Altana (only V2), nor a rebalancing one — everything composed by hand against the testnet NonfungiblePositionManager (a different address than mainnet). Two-part infrastructure gate before building: V3 deployed on testnet (yes) and a pool with healthy liquidity (WBNB/BUSD V3 was empty across all 4 fee tiers; WBNB/USDT-official at 0.25% had real liquidity).",
     status: "live-testnet",
     metrics: [
-      { label: "Pool", value: "WBNB / USDT-oficial, fee 0.25%" },
-      { label: "Posición A (cerrada)", value: "tokenId 36781, rango [-24950, -23900]" },
-      { label: "Posición B (activa)", value: "tokenId 36782, rango [-24700, -23650]" },
-      { label: "Desplazamiento del rango", value: "+250 ticks (5 tickSpacings)" },
+      { label: "Pool", value: "WBNB / USDT-official, 0.25% fee" },
+      { label: "Position A (closed)", value: "tokenId 36781, range [-24950, -23900]" },
+      { label: "Position B (active)", value: "tokenId 36782, range [-24700, -23650]" },
+      { label: "Range shift", value: "+250 ticks (5 tickSpacings)" },
     ],
     transactions: [
-      { label: "Mint posición A", hash: "0xd4b3d1a5f51960da3086d134017f9af8487229d11b90c2419dc97738012d857b" },
-      { label: "Ajuste real: cierre de A (decreaseLiquidity + collect)", hash: "0x485da2875edf17055307b52f4e18e47cdda5b419ce64453a02787f7fe7e022df" },
-      { label: "Reposicionar: mint posición B", hash: "0x5ae725b19bccdf05f256051493170eea5c00f20f0386f1f4f3187dd1fecebd24" },
+      { label: "Mint position A", hash: "0xd4b3d1a5f51960da3086d134017f9af8487229d11b90c2419dc97738012d857b" },
+      { label: "Real adjustment: close A (decreaseLiquidity + collect)", hash: "0x485da2875edf17055307b52f4e18e47cdda5b419ce64453a02787f7fe7e022df" },
+      { label: "Reposition: mint position B", hash: "0x5ae725b19bccdf05f256051493170eea5c00f20f0386f1f4f3187dd1fecebd24" },
     ],
   },
 ];

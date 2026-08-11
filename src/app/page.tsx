@@ -4,25 +4,27 @@ import { CATEGORIES, AGENTS } from "@/lib/agents";
 
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col items-center px-6 py-20">
-      <span className="mb-3 rounded-full border border-bnb-gold/30 bg-bnb-gold/10 px-3 py-1 text-xs font-medium text-bnb-gold">
-        BNB Agent Studio Marketplace — testnet skeleton
+    <main className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center px-6 py-20">
+      <div className="hero-glow" />
+
+      <span className="relative mb-3 rounded-full border border-bnb-gold/30 bg-bnb-gold/10 px-3 py-1 text-xs font-medium text-bnb-gold">
+        KaizenScope — Live on BSC Testnet
       </span>
-      <h1 className="text-center text-4xl font-bold tracking-tight text-bnb-text sm:text-5xl">
-        Encuentra agentes reales.
+      <h1 className="relative text-center text-4xl font-bold tracking-tight text-bnb-text sm:text-5xl">
+        Find real agents.
         <br />
-        Contrátalos en un clic.
+        Hire them in one click.
       </h1>
-      <p className="mt-4 max-w-xl text-center text-bnb-muted">
-        {AGENTS.length} agentes vivos en BSC testnet, uno por categoría. Cada tarjeta enlaza a
-        su transacción real onchain.
+      <p className="relative mt-4 max-w-xl text-center text-bnb-muted">
+        {AGENTS.length} live agents on BSC testnet, one per category. Every card links to its
+        real onchain transaction.
       </p>
 
-      <div className="mt-10 w-full flex justify-center">
+      <div className="relative mt-10 w-full flex justify-center">
         <SearchBar />
       </div>
 
-      <div className="mt-12 grid w-full grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="relative mt-12 grid w-full grid-cols-2 gap-4 sm:grid-cols-4">
         {CATEGORIES.map((cat) => (
           <Link
             key={cat.slug}
