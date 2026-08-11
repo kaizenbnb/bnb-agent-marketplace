@@ -20,49 +20,52 @@ export default async function AgentPage({
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
       {category && (
-        <Link href={`/category/${category.slug}`} className="text-sm text-neutral-500 hover:text-neutral-300">
+        <Link href={`/category/${category.slug}`} className="text-sm text-bnb-muted hover:text-bnb-gold">
           &larr; {category.label}
         </Link>
       )}
 
       <div className="mt-3 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-50">{agent.name}</h1>
-          <p className="mt-1 text-sm text-neutral-500">{agent.protocol} · {agent.chain}</p>
+          <h1 className="text-3xl font-bold text-bnb-text">{agent.name}</h1>
+          <p className="mt-1 text-sm text-bnb-muted">{agent.protocol} · {agent.chain}</p>
         </div>
         <span className="shrink-0 rounded-full bg-emerald-900/50 px-3 py-1 text-xs font-medium text-emerald-400">
           Live · testnet
         </span>
       </div>
 
-      <p className="mt-6 text-neutral-300">{agent.description}</p>
+      <p className="mt-6 text-bnb-text/80">{agent.description}</p>
 
       <div className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Wallet agéntica</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-bnb-muted">Wallet agéntica</h2>
         <a
           href={`${EXPLORER_ADDRESS_BASE}${agent.wallet}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-block rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 font-mono text-xs text-emerald-400 hover:border-emerald-600"
+          className="mt-2 inline-block rounded-md border border-bnb-line bg-bnb-card px-3 py-2 font-mono text-xs text-bnb-gold hover:border-bnb-gold"
         >
           {agent.wallet}
         </a>
       </div>
 
       <div className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Métricas reales</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-bnb-muted">Métricas reales</h2>
         <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {agent.metrics.map((m) => (
-            <div key={m.label} className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-              <dt className="text-xs text-neutral-500">{m.label}</dt>
-              <dd className="mt-1 text-sm font-medium text-neutral-100">{m.value}</dd>
+            <div
+              key={m.label}
+              className="rounded-lg border border-bnb-line bg-bnb-card p-4 transition hover:border-bnb-gold/60"
+            >
+              <dt className="text-xs text-bnb-muted">{m.label}</dt>
+              <dd className="mt-1 text-sm font-medium text-bnb-text">{m.value}</dd>
             </div>
           ))}
         </dl>
       </div>
 
       <div className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-bnb-muted">
           Transacciones onchain ({agent.transactions.length})
         </h2>
         <ul className="mt-3 space-y-2">
@@ -72,10 +75,10 @@ export default async function AgentPage({
                 href={`${EXPLORER_TX_BASE}${tx.hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm hover:border-emerald-600"
+                className="flex items-center justify-between rounded-lg border border-bnb-line bg-bnb-card px-4 py-3 text-sm hover:border-bnb-gold"
               >
-                <span className="text-neutral-300">{tx.label}</span>
-                <span className="font-mono text-xs text-emerald-400">
+                <span className="text-bnb-text/80">{tx.label}</span>
+                <span className="font-mono text-xs text-bnb-gold">
                   {tx.hash.slice(0, 10)}…{tx.hash.slice(-8)}
                 </span>
               </a>
@@ -90,7 +93,7 @@ export default async function AgentPage({
         </div>
       )}
 
-      <div className="mt-10 border-t border-neutral-800 pt-8">
+      <div className="mt-10 border-t border-bnb-line pt-8">
         <HireButton agentName={agent.name} />
       </div>
     </main>

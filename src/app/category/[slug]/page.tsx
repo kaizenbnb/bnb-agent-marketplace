@@ -19,15 +19,15 @@ export default async function CategoryPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-14">
-      <Link href="/" className="text-sm text-neutral-500 hover:text-neutral-300">
+      <Link href="/" className="text-sm text-bnb-muted hover:text-bnb-gold">
         &larr; Todas las categorías
       </Link>
-      <h1 className="mt-3 text-3xl font-bold text-neutral-50">{category.label}</h1>
-      <p className="mt-1 text-neutral-400">{category.ruleOfThumb}</p>
+      <h1 className="mt-3 text-3xl font-bold text-bnb-text">{category.label}</h1>
+      <p className="mt-1 text-bnb-muted">{category.ruleOfThumb}</p>
 
-      <div className="mt-8 overflow-x-auto rounded-lg border border-neutral-800">
+      <div className="mt-8 overflow-x-auto rounded-lg border border-bnb-line">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="bg-neutral-900 text-neutral-400">
+          <thead className="bg-bnb-card text-bnb-muted">
             <tr>
               <th className="px-4 py-3 font-medium">Agente</th>
               <th className="px-4 py-3 font-medium">Protocolo</th>
@@ -36,21 +36,21 @@ export default async function CategoryPage({
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-800">
+          <tbody className="divide-y divide-bnb-line">
             {agents.map((agent) => (
-              <tr key={agent.id} className="text-neutral-200">
+              <tr key={agent.id} className="text-bnb-text/90">
                 <td className="px-4 py-3 font-medium">{agent.name}</td>
-                <td className="px-4 py-3 text-neutral-400">{agent.protocol}</td>
+                <td className="px-4 py-3 text-bnb-muted">{agent.protocol}</td>
                 <td className="px-4 py-3">
                   <span className="rounded-full bg-emerald-900/50 px-2 py-0.5 text-xs font-medium text-emerald-400">
                     Live · testnet
                   </span>
                 </td>
-                <td className="px-4 py-3 text-neutral-400">{agent.transactions.length}</td>
+                <td className="px-4 py-3 text-bnb-muted">{agent.transactions.length}</td>
                 <td className="px-4 py-3 text-right">
                   <Link
                     href={`/agent/${agent.id}`}
-                    className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+                    className="rounded-md bg-bnb-gold px-3 py-1.5 text-xs font-semibold text-bnb-carbon hover:bg-bnb-gold/90"
                   >
                     Ver ficha
                   </Link>
@@ -59,7 +59,7 @@ export default async function CategoryPage({
             ))}
             {agents.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-neutral-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-bnb-muted">
                   Sin agentes en esta categoría todavía.
                 </td>
               </tr>

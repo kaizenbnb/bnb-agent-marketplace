@@ -1,18 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  /* BNB Chain design tokens — cambiar aqui, no en los componentes */
+  --bnb-carbon: #0b0e11; /* fondo de pagina */
+  --bnb-card: #161a1e; /* fondo de tarjetas */
+  --bnb-line: #2b3139; /* borde por defecto */
+  --bnb-gold: #f0b90b; /* acento de marca */
+  --bnb-text: #eaecef; /* texto principal */
+  --bnb-muted: #848e9c; /* labels, texto secundario */
+
+  --background: var(--bnb-carbon);
+  --foreground: var(--bnb-text);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bnb-carbon: var(--bnb-carbon);
+  --color-bnb-card: var(--bnb-card);
+  --color-bnb-line: var(--bnb-line);
+  --color-bnb-gold: var(--bnb-gold);
+  --color-bnb-text: var(--bnb-text);
+  --color-bnb-muted: var(--bnb-muted);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
