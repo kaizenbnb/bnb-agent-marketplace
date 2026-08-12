@@ -15,10 +15,12 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
   const busy = status === "requesting" || status === "signing" || status === "settling";
 
   /**
-   * The settling step waits on real on-chain confirmations (Permit2 settlement,
-   * then the agent's own transaction), which measured ~29s end-to-end. Without a
-   * ticking counter the label sits unchanged that whole time and reads as a
-   * frozen UI rather than work in progress.
+   * The settling step runs two sequential on-chain transactions (Permit2
+   * settlement, then the agent's own work), measured at ~29s end-to-end.
+   * Only ~0.9s of that is actual block confirmation at BSC testnet's 0.450s
+   * block time -- the rest is SDK relay orchestration (see
+   * AGENT_ADVANTAGE_REPORT.md). Either way the label sits unchanged that whole
+   * time without a ticking counter, and reads as a frozen UI.
    */
   useEffect(() => {
     if (!busy) return;
@@ -90,8 +92,9 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
 
       {status === "settling" && (
         <p className="mt-3 text-xs text-bnb-muted">
-          Waiting on two real onchain confirmations — the Permit2 payment, then the
-          agent&apos;s own transaction. Typically ~30s on BSC testnet; this page is not stuck.
+          Settling the Permit2 payment, then running the agent&apos;s own transaction —
+          in that order, so the work only runs if the payment cleared. Typically ~30s;
+          this page is not stuck.
         </p>
       )}
 

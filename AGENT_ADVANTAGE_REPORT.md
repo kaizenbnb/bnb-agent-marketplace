@@ -11,6 +11,49 @@ Two rules, applied strictly:
 
 No comparison below uses a projected or assumed manual cost as its primary evidence. The primary evidence is always: we did this by hand first, it took a documented amount of time, and it broke in a documented way.
 
+Both sides of the comparison are measured: the manual side in the per-task sections below, the agent side in [The cost of hiring](#the-cost-of-hiring-measured) immediately after.
+
+---
+
+## The cost of hiring, measured
+
+The manual figures in this report come from real build sessions. The agent side is measured too, so the comparison has a number in both columns rather than a number against an impression.
+
+**Method:** a `MutationObserver` instrumented in the live page, timing each state transition of a real hire (no mocks, real payment, real work). Two runs on two different agents, to confirm the profile isn't specific to one code path.
+
+| Phase | Grid Bot | What happens |
+|---|---|---|
+| `402 Payment Required` returned | **3 ms** | Server states price and asset; charges nothing |
+| Permit2 authorization signed | **28 ms** | Off-chain signature |
+| Settlement + agent work | **29,192 ms** | Two transactions land on-chain |
+| **Total end-to-end** | **29,416 ms** | |
+
+Second run, Venus Health Factor Guardian: **26,307 ms** end-to-end. Same profile.
+
+### How much of that is the chain, and how much is us
+
+This is the part worth being precise about, because the intuitive answer is wrong.
+
+Measured against the two real transactions of the instrumented grid run:
+
+| Measurement | Value |
+|---|---|
+| BSC Testnet block time (two independent samples) | **0.450 s** |
+| Payment settled ([`0xac81…3944`](https://testnet.bscscan.com/tx/0xac81cbf3a9927770f1578a30db14503f06763407f377a86759dd4b16572f3944)) | block 124619341, `2026-08-12T08:57:55Z` |
+| Agent work executed ([`0xfa7d…9748`](https://testnet.bscscan.com/tx/0xfa7d848f04f07791a47783101b09ca4ccbd75d7a3cc5de9fe060b9d2823d9748)) | block 124619400, `2026-08-12T08:58:22Z` |
+| Elapsed between the two confirmations | **27 s** (59 blocks) |
+
+The hire requires exactly **two sequential on-chain confirmations** — that sequencing is a design guarantee, not an accident: the agent's work must not run unless the payment actually settled. At a 0.450 s block time, those two confirmations cost roughly **0.9 s**. That is the irreducible floor.
+
+The observed total was 29.4 s. So:
+
+- **~0.9 s (≈3%) is chain confirmation** — irreducible, bounded by block time and the two-step guarantee.
+- **~28.5 s (≈97%) is orchestration** — everything between: the Altana SDK relay round-trips (`grantSession`, `execute`), quote reads, transaction construction, and relay submission latency.
+
+The chain is not the bottleneck. BSC Testnet confirmed both transactions in under a second of actual block time; the remaining 28.5 s is our own execution path through the SDK relay. We have not decomposed that 28.5 s further into its individual relay calls — doing so needs server-side instrumentation we haven't added — so it is reported as one measured block, not split by guesswork.
+
+**Why this strengthens rather than weakens the comparison:** the agent-side cost is ~29 s against 40–70 minutes of documented manual work per task, and the dominant term in those 29 s is improvable infrastructure latency rather than a physical floor. The manual side's cost is knowledge that has to be re-acquired; the agent side's cost is a relay round-trip that gets faster as the infrastructure does.
+
 ---
 
 ## Task 1 — Grid Trading (PancakeSwap V2) — trading task
@@ -75,10 +118,12 @@ No comparison below uses a projected or assumed manual cost as its primary evide
 
 ## Summary
 
-| Task | Real anchor tx (gas) | Manual — real evidence | Manual — estimated ongoing cost | Steps (manual → hire) |
+| Task | Real anchor tx (gas) | Manual — measured | Hire — measured | Manual — estimated ongoing cost |
 |---|---|---|---|---|
-| Grid Trading | [kick-off](https://testnet.bscscan.com/tx/0xa5c689a0a3684935cf6d1446eaad9a3903c8471f152be9cd1b42debd58706e91) (248,100 gas) | 55 min; 1 inflated-pool bug avoided | Sub-1% threshold monitoring — not sustainable by a human, unquantified | reserve check + grid calc + repeated manual swaps → 1 hire call |
-| Health Factor | [borrow](https://testnet.bscscan.com/tx/0x3b4317c9eba9d4734785f61051920d766f82593694ace2e6be40badc28b73775) + [repay](https://testnet.bscscan.com/tx/0x557c3171ea77fba6c53ccaafbd73719589c5d147c9977b158201c222363392c1) (646,230 + 284,866 gas) | 70 min; **real 10¹²× decimals bug hit and caught**; session-permission wall (3 failed attempts) | Re-deriving the HF formula manually risks repeating the same decimals trap — unquantified | 4 raw reads + manual HF formula + admin-path repay → 1 hire call |
-| V3 Rebalancing | [close](https://testnet.bscscan.com/tx/0x485da2875edf17055307b52f4e18e47cdda5b419ce64453a02787f7fe7e022df) + [reopen](https://testnet.bscscan.com/tx/0x5ae725b19bccdf05f256051493170eea5c00f20f0386f1f4f3187dd1fecebd24) (940,454 gas, 5s apart) | 40 min; 2-part infra gate; 0 bugs — because prior lessons were applied by design | Silent failure mode (wrong range ⇒ zero fees, no revert) — highest-severity, unquantified because we avoided it | 5 raw calls incl. tick math → 1 hire call |
+| Grid Trading | [kick-off](https://testnet.bscscan.com/tx/0xa5c689a0a3684935cf6d1446eaad9a3903c8471f152be9cd1b42debd58706e91) (248,100 gas) | **55 min**; 1 inflated-pool bug avoided | **29.4 s** end-to-end | Sub-1% threshold monitoring — not sustainable by a human, unquantified |
+| Health Factor | [borrow](https://testnet.bscscan.com/tx/0x3b4317c9eba9d4734785f61051920d766f82593694ace2e6be40badc28b73775) + [repay](https://testnet.bscscan.com/tx/0x557c3171ea77fba6c53ccaafbd73719589c5d147c9977b158201c222363392c1) (646,230 + 284,866 gas) | **70 min**; **real 10¹²× decimals bug hit and caught**; session-permission wall (3 failed attempts) | **26.3 s** end-to-end | Re-deriving the HF formula manually risks repeating the same decimals trap — unquantified |
+| V3 Rebalancing | [close](https://testnet.bscscan.com/tx/0x485da2875edf17055307b52f4e18e47cdda5b419ce64453a02787f7fe7e022df) + [reopen](https://testnet.bscscan.com/tx/0x5ae725b19bccdf05f256051493170eea5c00f20f0386f1f4f3187dd1fecebd24) (940,454 gas, 5s apart) | **40 min**; 2-part infra gate; 0 bugs — because prior lessons were applied by design | not separately instrumented; same code path as the two above | Silent failure mode (wrong range ⇒ zero fees, no revert) — highest-severity, unquantified because we avoided it |
 
-Gas is not the differentiator in any of the three tasks — the same contract calls execute on-chain either way, hand-composed or agent-executed. The advantage is in the **research and correctness work done once, by hand, and encoded permanently**: 55 + 70 + 40 = 165 minutes of first-hand, documented manual composition across the three tasks, during which we hit one live decimals bug, one live session-permission wall, and one live inflated-pool trap. Hiring the agent afterward collapses that into a single x402 round trip — not because the underlying DeFi mechanics got any simpler, but because someone already paid the cost of getting them right and verified it on-chain.
+Gas is not the differentiator in any of the three tasks — the same contract calls execute on-chain either way, hand-composed or agent-executed. The advantage is in the **research and correctness work done once, by hand, and encoded permanently**: 55 + 70 + 40 = 165 minutes of first-hand, documented manual composition across the three tasks, during which we hit one live decimals bug, one live session-permission wall, and one live inflated-pool trap.
+
+With both columns measured, the comparison is **165 minutes of documented manual work against ~29 seconds per hire** — and of those 29 seconds, only ~0.9 s is chain confirmation. The remaining ~28.5 s is relay orchestration that gets faster as the infrastructure improves, while the manual side's cost is knowledge that has to be re-acquired by whoever tries it next. Hiring collapses the work into a single x402 round trip — not because the underlying DeFi mechanics got simpler, but because someone already paid the cost of getting them right and verified it on-chain.

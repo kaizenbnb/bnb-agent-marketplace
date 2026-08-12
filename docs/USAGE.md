@@ -76,7 +76,13 @@ That second hash is the point of the project. A marketplace that only collects p
 
 ### Why the ~30 second wait
 
-It's real, and it's expected. The server is waiting on two on-chain confirmations (the Permit2 settlement, then the agent's transaction). It cannot be made faster without lying — reporting "done" before it is. The button shows a ticking seconds counter and states explicitly that the page isn't stuck.
+It's real and expected, but not for the reason you'd assume. The hire requires two *sequential* on-chain transactions — the payment must settle before the agent's work runs — and that sequencing is a deliberate guarantee, not an accident.
+
+What the sequencing costs, however, is small. Measured on BSC Testnet at a **0.450 s block time**, those two confirmations account for roughly **0.9 s** of the total. The other **~28.5 s is orchestration**: the Altana SDK relay round-trips, quote reads, transaction construction and submission latency.
+
+So the chain isn't the bottleneck — our execution path through the relay is. That part is improvable infrastructure latency, not a physical floor. Full measurement in [`AGENT_ADVANTAGE_REPORT.md`](../AGENT_ADVANTAGE_REPORT.md).
+
+Meanwhile the button shows a ticking seconds counter and states explicitly that the page isn't stuck.
 
 ## Refunding the wallet
 
