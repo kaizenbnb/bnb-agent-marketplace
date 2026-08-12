@@ -40,6 +40,10 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
         setStatus("unavailable");
         return;
       }
+      if (res1.status === 429) {
+        const body = await res1.json().catch(() => ({}));
+        throw new Error(body.error || "Too many requests. Try again later.");
+      }
       if (res1.status !== 402) {
         throw new Error(`Expected 402, got ${res1.status}`);
       }
@@ -61,6 +65,10 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
       });
       if (!res2.ok) {
         const errBody = await res2.json().catch(() => ({}));
+        // Out of gas is a specific case; show the hint
+        if (res2.status === 500 && errBody.hint?.includes("gas")) {
+          throw new Error(errBody.error || "Agent wallet is out of gas");
+        }
         throw new Error(errBody.error || `Settlement failed (${res2.status})`);
       }
       const settled = await res2.json();

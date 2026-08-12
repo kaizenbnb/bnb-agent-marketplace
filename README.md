@@ -2,6 +2,8 @@
 
 ![KaizenScope demo: home, task chip, agent detail, hiring, two settled transactions](docs/demo.gif)
 
+**Live demo:** [https://bnb-agent-marketplace.vercel.app/](https://bnb-agent-marketplace.vercel.app/)
+
 An intent-first marketplace for hiring ERC-8004 agents on BNB Smart Chain: pick a task, see the real agent live for it, hire in one click via x402.
 
 ## The problem
@@ -114,5 +116,9 @@ pnpm dev
 The app runs on [http://localhost:3100](http://localhost:3100).
 
 No wallet extension is wired up client-side. The demo signs the x402 Permit2 payment server-side via a Server Action, since there's no browser wallet connection in this build. See `src/app/actions/hire.ts`.
+
+## Production deployment
+
+Environment variables are configured in the Vercel project settings, not committed to the repo. See `.env.example` for required variables.
 
 **[`docs/USAGE.md`](docs/USAGE.md)** is the full operating guide: the walkthrough, what the two returned hashes prove, why the hire takes ~30s, per-hire testnet cost, how to refund the wallet when tBNB runs out (the faucet needs mainnet BNB *and* a human-solved CAPTCHA), and a troubleshooting table.
