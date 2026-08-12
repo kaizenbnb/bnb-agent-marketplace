@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseEther } from "viem";
 import { getAgent } from "@/lib/agents";
 import { build402Body, decodeXPayment, validatePermit2Authorization, settlePermit2Payment } from "@/lib/x402";
 import { supplyToVenus, addCollateralToVenus } from "@/lib/venus";
 import { fireGridSwap } from "@/lib/pancake";
-import { growPositionB } from "@/lib/v3";
+import { growPositionB, collectFeesPositionB } from "@/lib/v3";
 
 /**
  * The x402 "merchant" for hiring an agent. Real three-step handshake:
@@ -20,9 +21,13 @@ import { growPositionB } from "@/lib/v3";
 
 const WORK_ACTIONS: Record<string, () => Promise<string>> = {
   "yield-venus-comparator": supplyToVenus,
+  "yield-venus-comparator-conservative": () => supplyToVenus(500_000n), // 0.5 USDT
   "health-factor-venus": addCollateralToVenus,
+  "health-factor-venus-aggressive": addCollateralToVenus,
   "grid-pancakeswap-v2": fireGridSwap,
+  "grid-pancakeswap-v2-wide": () => fireGridSwap(parseEther("0.02")), // 0.02 BNB
   "rebalancing-pancakeswap-v3": growPositionB,
+  "rebalancing-pancakeswap-v3-harvest": collectFeesPositionB,
 };
 
 // Simple in-memory rate limiter: tracks requests per IP per hour
