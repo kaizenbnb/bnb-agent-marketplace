@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAgent } from "@/lib/agents";
-import { build402Body, decodeXPayment, settlePermit2Payment } from "@/lib/x402";
+import { build402Body, decodeXPayment, validatePermit2Authorization, settlePermit2Payment } from "@/lib/x402";
 import { supplyToVenus, addCollateralToVenus } from "@/lib/venus";
 import { fireGridSwap } from "@/lib/pancake";
 import { growPositionB } from "@/lib/v3";
 
 /**
- * The x402 "merchant" for hiring an agent. Real two-step handshake:
+ * The x402 "merchant" for hiring an agent. Real three-step handshake:
  *   1. POST without X-PAYMENT -> 402 with payment requirements (accepts[]).
- *   2. POST again with a valid X-PAYMENT -> settles the Permit2 authorization
- *      on-chain, then executes the agent's real billable action, and returns
- *      BOTH transaction hashes. A hire that only charges isn't a hire.
+ *   2. POST with X-PAYMENT:
+ *      a. VALIDATE: read-only checks (nonce unused, balance/allowance sufficient, deadline OK)
+ *      b. WORK: execute the agent's billable action
+ *      c. CAPTURE: only if work succeeds, settle the Permit2 payment
+ *      Returns BOTH transaction hashes on success. If work fails, payment is never settled.
  *
  * Generalized one agent at a time, each verified end-to-end before the next
- * (see AGENT_LOG.md at the repo root for the underlying agent lessons).
+ * (see agents/AGENT_LOG.md for the underlying agent lessons).
  */
 
 const WORK_ACTIONS: Record<string, () => Promise<string>> = {
@@ -52,33 +54,56 @@ export async function POST(
     return NextResponse.json(body, { status: 402 });
   }
 
-  let paymentTxHash: string;
+  let payload;
   try {
-    const payload = decodeXPayment(xPayment);
-    paymentTxHash = await settlePermit2Payment(payload, agent.wallet as `0x${string}`);
+    payload = decodeXPayment(xPayment);
   } catch (err) {
     return NextResponse.json(
-      { error: "Payment settlement failed", details: String(err) },
+      { error: "Invalid X-PAYMENT header" },
+      { status: 400 }
+    );
+  }
+
+  // Step 1: VALIDATE the authorization (read-only, no blockchain writes)
+  try {
+    await validatePermit2Authorization(payload);
+  } catch (err) {
+    return NextResponse.json(
+      { error: "Authorization validation failed", reason: String(err) },
       { status: 402 }
     );
   }
 
+  // Step 2: WORK — execute the agent's billable action
+  let workTxHash: string;
   try {
-    const workTxHash = await doWork();
-    return NextResponse.json({
-      status: "hired",
-      agent: agent.name,
-      payment: { txHash: paymentTxHash },
-      work: { txHash: workTxHash },
-    });
+    workTxHash = await doWork();
   } catch (err) {
     return NextResponse.json(
-      {
-        error: "Payment settled but the agent's work action failed.",
-        payment: { txHash: paymentTxHash },
-        details: String(err),
-      },
+      { error: "Agent work action failed before payment was captured" },
       { status: 500 }
     );
   }
+
+  // Step 3: CAPTURE — only if work succeeded, settle the payment
+  let paymentTxHash: string;
+  try {
+    paymentTxHash = await settlePermit2Payment(payload, agent.wallet as `0x${string}`);
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: "Work succeeded but payment settlement failed. Work executed; payment may require manual review.",
+        work: { txHash: workTxHash },
+        details: String(err),
+      },
+      { status: 502 }
+    );
+  }
+
+  return NextResponse.json({
+    status: "hired",
+    agent: agent.name,
+    payment: { txHash: paymentTxHash },
+    work: { txHash: workTxHash },
+  });
 }

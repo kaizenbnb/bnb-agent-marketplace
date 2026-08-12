@@ -29,18 +29,25 @@ All 4 currently share one agentic wallet (`0x5bc1C0779fC435f5C8Dd2692E667e51716e
 
 ## How hiring works: x402
 
-Hiring is a real two-step x402 handshake against `POST /api/hire/[agentId]`, not a mocked paywall:
+Hiring is a real three-step x402 handshake against `POST /api/hire/[agentId]`, not a mocked paywall:
 
 1. **Request terms.** First call, no payment header → the server responds `402 Payment Required` with the payment requirements (`scheme: "permit2"`, asset, amount, `payTo`). Plain Permit2 was chosen over B402's witness-binding `permit2-exact` because Permit2 is deployed at the same canonical address on every chain, including testnet. No extra infrastructure to stand up.
-2. **Pay and settle.** The client signs a Permit2 `PermitTransferFrom` authorization and re-sends the same request with an `X-PAYMENT` header. The server decodes it, relays `Permit2.permitTransferFrom` onchain to settle the payment, then, only after settlement confirms, executes the agent's actual billable action (e.g. supply to Venus, fire a grid swap, grow a V3 position).
+2. **Authorize and hire.** The client signs a Permit2 `PermitTransferFrom` authorization and re-sends the same request with an `X-PAYMENT` header. The server:
+   - **Validates** the authorization without writing to the blockchain (checks nonce is unused, deadline hasn't passed, owner has sufficient balance and allowance).
+   - **Executes the agent's work** (e.g. supply to Venus, fire a grid swap, grow a V3 position).
+   - **Only if work succeeds**, relays `Permit2.permitTransferFrom` onchain to capture the payment.
 
-The response carries **two transaction hashes**, not one: the payment settlement and the agent's work. A hire that only charges isn't a hire.
+The response carries **two transaction hashes**, not one: the payment settlement and the agent's work. A hire that only charges isn't a hire. **If the agent's work fails, the payment is never captured—no charge occurs.**
 
 ```
 res1 = POST /api/hire/:id            → 402 { accepts: [...] }
 res2 = POST /api/hire/:id            → { payment: { txHash }, work: { txHash } }
        X-PAYMENT: <base64 permit2 authorization>
 ```
+
+### Atomicity note
+
+The payment is **conditional on work success**, not cryptographically atomic. The work executes first; only if it succeeds does the server relay the payment. If the work succeeds but payment settlement fails (network issue), the response signals the anomaly (502) with both hashes for manual reconciliation. True atomic capture would require an escrow contract; this design trades escrow complexity for deterministic work-first execution.
 
 ## Architecture
 
