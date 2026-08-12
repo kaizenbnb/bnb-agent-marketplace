@@ -101,7 +101,7 @@ export default async function AgentPage({
       )}
 
       <div className="mt-10 border-t border-bnb-line pt-8">
-        <HireButton agentName={agent.name} />
+        <HireButton agentId={agent.id} agentName={agent.name} />
       </div>
     </main>
   );
