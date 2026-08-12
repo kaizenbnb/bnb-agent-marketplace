@@ -5,7 +5,7 @@ import { USDT_TESTNET } from "./venus";
 
 export { PERMIT2_ADDRESS };
 
-const HIRE_PRICE_USDT = 1_000_000n; // 1.00 USDT, 6 decimals (real testnet decimals — verified, see AGENT_LOG.md)
+const HIRE_PRICE_USDT = 1_000_000n; // 1.00 USDT, 6 decimals (real testnet decimals: verified, see AGENT_LOG.md)
 
 const bscTestnetRO = {
   id: 97,
@@ -16,7 +16,7 @@ const bscTestnetRO = {
 
 /**
  * Build the x402 402 response body. Scheme "permit2" (plain PermitTransferFrom,
- * not the witness-binding "permit2-exact" B402 uses) — that variant relies on
+ * not the witness-binding "permit2-exact" B402 uses). That variant relies on
  * Binance's own x402ExactPermit2Proxy contract, which only exists on mainnet.
  * Plain Permit2 is deployed at the same canonical address on every chain
  * including testnet, so this settles with zero extra infrastructure.
@@ -88,7 +88,7 @@ export function decodeXPayment(header: string): XPaymentPayload {
 /**
  * Settle a decoded X-PAYMENT permit2 authorization on-chain by calling
  * Permit2.permitTransferFrom directly with our relayer key. Any address may
- * relay a validly-signed Permit2 authorization — settlement doesn't require
+ * relay a validly-signed Permit2 authorization. Settlement doesn't require
  * the payer's key, only a valid signature already produced by them.
  */
 export async function settlePermit2Payment(payload: XPaymentPayload, recipient: Address) {

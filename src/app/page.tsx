@@ -10,7 +10,7 @@ export default function Home() {
       <div className="hero-glow" />
 
       <span className="relative mb-3 rounded-full border border-bnb-gold/30 bg-bnb-gold/10 px-3 py-1 text-xs font-medium text-bnb-gold">
-        KaizenScope — Live on BSC Testnet
+        KaizenScope: Live on BSC Testnet
       </span>
       <h1 className="relative text-center text-4xl font-bold tracking-tight text-bnb-text sm:text-5xl">
         Find real agents.

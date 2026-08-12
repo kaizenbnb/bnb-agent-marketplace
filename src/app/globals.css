@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* BNB Chain design tokens — cambiar aqui, no en los componentes */
+  /* BNB Chain design tokens: cambiar aqui, no en los componentes */
   --bnb-carbon: #0b0e11; /* fondo de pagina */
   --bnb-card: #161a1e; /* fondo de tarjetas */
   --bnb-line: #2b3139; /* borde por defecto */
@@ -30,7 +30,7 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  /* rejilla fina apenas visible — sensacion de dashboard, no de vacio */
+  /* rejilla fina apenas visible: sensacion de dashboard, no de vacio */
   background-image:
     linear-gradient(to right, rgba(43, 49, 57, 0.5) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(43, 49, 57, 0.5) 1px, transparent 1px);

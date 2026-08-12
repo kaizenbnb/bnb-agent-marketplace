@@ -32,7 +32,7 @@ export const GITHUB_REPO_URL = "https://github.com/kaizenbnb/bnb-agent-marketpla
 
 /**
  * Total agents observed in the official ERC-8004 registry on BSC mainnet
- * (0x8004A169...) during the BNB-Hackaton indexing session — ownerOf probes
+ * (0x8004A169...) during the BNB-Hackaton indexing session: ownerOf probes
  * reverted past agentId ~263,400. Not derivable from this repo's data (a
  * separate indexer run in a different project); sourced from AGENT_LOG.md
  * there rather than fabricated.
@@ -75,19 +75,19 @@ export const AGENTS: Agent[] = [
     summary:
       "Compares APR across Venus, Aave V3 and Lista, and supplies to whichever is actually available on the current network.",
     description:
-      "Built for 3 protocols. On BSC testnet only Venus has a real deployment — Aave V3 and Lista have no presence on chain 97, verified against Aave's official address book and Lista's repos. The agent reads all 3 rates, flags the unavailable ones with an explicit reason, and only executes on the real branch.",
+      "Built for 3 protocols. On BSC testnet only Venus has a real deployment. Aave V3 and Lista have no presence on chain 97, verified against Aave's official address book and Lista's repos. The agent reads all 3 rates, flags the unavailable ones with an explicit reason, and only executes on the real branch.",
     status: "live-testnet",
     metrics: [
       { label: "Sources evaluated", value: "3 (Venus, Aave V3, Lista)" },
       { label: "Available on testnet", value: "1 of 3 (Venus only)" },
-      { label: "Active protocol", value: "Venus Core Pool — vUSDT" },
+      { label: "Active protocol", value: "Venus Core Pool: vUSDT" },
     ],
     transactions: [
       { label: "Seed test USDT", hash: "0x7c77f729d85789d5811ff02d8da9971d0902112cb412c49ec60a4de3a5de2b1c" },
       { label: "Supply to Venus", hash: "0x3cb2f287b53d26077d4169638910ecb7d4b42319899d2e8f9d823ccd3f527672" },
     ],
     caveat:
-      "The USDT amounts minted in this phase were affected by a decimals bug (18 assumed vs. 6 real) documented in AGENT_LOG.md — the transactions are real and verifiable; absolute USDT figures are omitted here for that reason.",
+      "The USDT amounts minted in this phase were affected by a decimals bug (18 assumed vs. 6 real) documented in AGENT_LOG.md. The transactions are real and verifiable; absolute USDT figures are omitted here for that reason.",
   },
   {
     id: "health-factor-venus",
@@ -99,7 +99,7 @@ export const AGENTS: Agent[] = [
     summary:
       "Opens a position with real debt, monitors its health factor, and partially repays it if it drops below threshold.",
     description:
-      "borrow/repay aren't in the official Venus Lending skill (supply-only) — composed by hand against the Comptroller (Unitroller) and vBNB/vUSDT. Collateral: 0.05 tBNB. Borrowed: 43.2 real USDT (90% of the capacity computed from a live getAccountLiquidity read). The health factor was calculated in isolation (real BNB collateral vs. real debt) to avoid contamination from a legacy position.",
+      "borrow/repay aren't in the official Venus Lending skill (supply-only), composed by hand against the Comptroller (Unitroller) and vBNB/vUSDT. Collateral: 0.05 tBNB. Borrowed: 43.2 real USDT (90% of the capacity computed from a live getAccountLiquidity read). The health factor was calculated in isolation (real BNB collateral vs. real debt) to avoid contamination from a legacy position.",
     status: "live-testnet",
     metrics: [
       { label: "Collateral", value: "0.05 tBNB" },
@@ -110,7 +110,7 @@ export const AGENTS: Agent[] = [
       { label: "Partial repay (protective action)", hash: "0x557c3171ea77fba6c53ccaafbd73719589c5d147c9977b158201c222363392c1" },
     ],
     caveat:
-      "The repay was executed via the admin path: repayBorrow() isn't supported through a scoped session in @altananetwork/sdk@0.7.0 (NoSpendPermissions regardless of the declared permission) — documented in AGENT_LOG.md.",
+      "The repay was executed via the admin path: repayBorrow() isn't supported through a scoped session in @altananetwork/sdk@0.7.0 (NoSpendPermissions regardless of the declared permission), documented in AGENT_LOG.md.",
     healthFactorGauge: { before: 0.9722, after: 1.3889, threshold: 1.15 },
   },
   {
@@ -122,7 +122,7 @@ export const AGENTS: Agent[] = [
     wallet: WALLET,
     summary: "Watches the WBNB/BUSD pair's price and fires a swap whenever it crosses a grid threshold.",
     description:
-      "There's no grid-trading skill in Altana — composed with getAmountsOut + swapExactETHForTokens/swapExactTokensForETH plus a custom threshold loop. The first candidate pair (WBNB/USDT-Venus) was inflated by another team's decimals bug; switched to the official WBNB/BUSD testnet pair, reasonably scaled (12.5 WBNB in reserves). Grid calibrated to a 0.4% step based on the actual available capital.",
+      "There's no grid-trading skill in Altana, composed with getAmountsOut + swapExactETHForTokens/swapExactTokensForETH plus a custom threshold loop. The first candidate pair (WBNB/USDT-Venus) was inflated by another team's decimals bug; switched to the official WBNB/BUSD testnet pair, reasonably scaled (12.5 WBNB in reserves). Grid calibrated to a 0.4% step based on the actual available capital.",
     status: "live-testnet",
     metrics: [
       { label: "Pair", value: "WBNB / BUSD (official testnet)" },
@@ -134,7 +134,7 @@ export const AGENTS: Agent[] = [
       { label: "Kick-off: initial sell (BNB → BUSD)", hash: "0xa5c689a0a3684935cf6d1446eaad9a3903c8471f152be9cd1b42debd58706e91" },
     ],
     caveat:
-      "Only 1 real grid crossing was recorded during the test window due to a lack of external activity in the pool — the threshold mechanism was verified; this isn't a continuous 24/7 looping rebalancer.",
+      "Only 1 real grid crossing was recorded during the test window due to a lack of external activity in the pool. The threshold mechanism was verified; this isn't a continuous 24/7 looping rebalancer.",
   },
   {
     id: "rebalancing-pancakeswap-v3",
@@ -145,7 +145,7 @@ export const AGENTS: Agent[] = [
     wallet: WALLET,
     summary: "Opens a concentrated liquidity position and repositions it once to a shifted range.",
     description:
-      "There's no V3 liquidity skill in Altana (only V2), nor a rebalancing one — everything composed by hand against the testnet NonfungiblePositionManager (a different address than mainnet). Two-part infrastructure gate before building: V3 deployed on testnet (yes) and a pool with healthy liquidity (WBNB/BUSD V3 was empty across all 4 fee tiers; WBNB/USDT-official at 0.25% had real liquidity).",
+      "There's no V3 liquidity skill in Altana (only V2), nor a rebalancing one, everything composed by hand against the testnet NonfungiblePositionManager (a different address than mainnet). Two-part infrastructure gate before building: V3 deployed on testnet (yes) and a pool with healthy liquidity (WBNB/BUSD V3 was empty across all 4 fee tiers; WBNB/USDT-official at 0.25% had real liquidity).",
     status: "live-testnet",
     metrics: [
       { label: "Pool", value: "WBNB / USDT-official, 0.25% fee" },

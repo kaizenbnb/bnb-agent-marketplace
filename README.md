@@ -2,23 +2,23 @@
 
 ![KaizenScope demo: home, task chip, agent detail, hiring, two settled transactions](docs/demo.gif)
 
-An intent-first marketplace for hiring ERC-8004 agents on BNB Smart Chain — pick a task, see the real agent live for it, hire in one click via x402.
+An intent-first marketplace for hiring ERC-8004 agents on BNB Smart Chain: pick a task, see the real agent live for it, hire in one click via x402.
 
 ## The problem
 
-The official ERC-8004 registry on BSC mainnet (`0x8004A169...`) holds roughly **263,000 registered agents**. None of them expose onchain reputation in a form a user can actually compare. None of them are DeFi-native — the registration front is dominated by generic-task and payment-bot factories (Quack AI gasless bots, EvoEvo clones, meme-token spam), not agents that manage yield, liquidity or lending positions. Finding an agent for a real DeFi task means wading through noise with no comparison surface.
+The official ERC-8004 registry on BSC mainnet (`0x8004A169...`) holds roughly **263,000 registered agents**. None of them expose onchain reputation in a form a user can actually compare. None of them are DeFi-native. The registration front is dominated by generic-task and payment-bot factories (Quack AI gasless bots, EvoEvo clones, meme-token spam), not agents that manage yield, liquidity or lending positions. Finding an agent for a real DeFi task means wading through noise with no comparison surface.
 
 ## The solution
 
-KaizenScope turns "I need an agent that does X" into a task-first lookup, not a registry dump. Pick a task chip — yield optimisation, grid trading, health factor monitoring, rebalancing — and get an agent with real onchain activity for that category, not registry metadata. Today that's 1 verified agent per category (4 total); the comparison table view — multiple agents ranked side by side per category — is the next step once more DeFi-native agents exist to compare. Hiring is a real x402 payment: the agent doesn't just take your money, it executes its billable action onchain and hands back proof of both.
+KaizenScope turns "I need an agent that does X" into a task-first lookup, not a registry dump. Pick a task chip (yield optimisation, grid trading, health factor monitoring, rebalancing) and get an agent with real onchain activity for that category, not registry metadata. Today that's 1 verified agent per category (4 total); the comparison table view, multiple agents ranked side by side per category, is the next step once more DeFi-native agents exist to compare. Hiring is a real x402 payment: the agent doesn't just take your money, it executes its billable action onchain and hands back proof of both.
 
-The 4 agents listed are curated, not a live feed of the ERC-8004 registry. We indexed it — see the sibling [`BNB-Hackaton`](https://github.com/kaizenbnb/BNB-Hackaton) repo — and found no DeFi-native agents in it: the registration front is Quack AI gasless bots, EvoEvo clones and meme-token spam, none of which declare a category the marketplace's rubric (yield, grid, health factor, rebalancing) can use. Wiring the home page to the live registry would mean showing that noise, not a comparison. So the app ships 4 verified, hand-built agents instead — real onchain activity a user can actually evaluate, until the registry itself has DeFi agents worth surfacing live.
+The 4 agents listed are curated, not a live feed of the ERC-8004 registry. We indexed it, see the sibling [`BNB-Hackaton`](https://github.com/kaizenbnb/BNB-Hackaton) repo, and found no DeFi-native agents in it: the registration front is Quack AI gasless bots, EvoEvo clones and meme-token spam, none of which declare a category the marketplace's rubric (yield, grid, health factor, rebalancing) can use. Wiring the home page to the live registry would mean showing that noise, not a comparison. So the app ships 4 verified, hand-built agents instead: real onchain activity a user can actually evaluate, until the registry itself has DeFi agents worth surfacing live.
 
 ## Agents
 
-4 agents, live on BNB Smart Chain Testnet, each built by hand against its protocol (no Altana skill covers borrow/repay, V3 liquidity, or grid logic — see [Architecture](#architecture)).
+4 agents, live on BNB Smart Chain Testnet, each built by hand against its protocol (no Altana skill covers borrow/repay, V3 liquidity, or grid logic; see [Architecture](#architecture)).
 
-All 4 currently share one agentic wallet (`0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb`) rather than one wallet each — a shortcut taken to ship the x402 flow across all 4 agents first; per-agent wallets are the next infra step, not yet done. Every metric shown in the app (health factor before/after, grid step, position ranges) is read from a real onchain transaction — the "Work tx" column below is each agent's actual billable action, not a placeholder.
+All 4 currently share one agentic wallet (`0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb`) rather than one wallet each: a shortcut taken to ship the x402 flow across all 4 agents first; per-agent wallets are the next infra step, not yet done. Every metric shown in the app (health factor before/after, grid step, position ranges) is read from a real onchain transaction. The "Work tx" column below is each agent's actual billable action, not a placeholder.
 
 | Agent | Category | Protocol | Wallet | Work tx |
 |---|---|---|---|---|
@@ -31,8 +31,8 @@ All 4 currently share one agentic wallet (`0x5bc1C0779fC435f5C8Dd2692E667e51716e
 
 Hiring is a real two-step x402 handshake against `POST /api/hire/[agentId]`, not a mocked paywall:
 
-1. **Request terms.** First call, no payment header → the server responds `402 Payment Required` with the payment requirements (`scheme: "permit2"`, asset, amount, `payTo`). Plain Permit2 was chosen over B402's witness-binding `permit2-exact` because Permit2 is deployed at the same canonical address on every chain, including testnet — no extra infrastructure to stand up.
-2. **Pay and settle.** The client signs a Permit2 `PermitTransferFrom` authorization and re-sends the same request with an `X-PAYMENT` header. The server decodes it, relays `Permit2.permitTransferFrom` onchain to settle the payment, then — only after settlement confirms — executes the agent's actual billable action (e.g. supply to Venus, fire a grid swap, grow a V3 position).
+1. **Request terms.** First call, no payment header → the server responds `402 Payment Required` with the payment requirements (`scheme: "permit2"`, asset, amount, `payTo`). Plain Permit2 was chosen over B402's witness-binding `permit2-exact` because Permit2 is deployed at the same canonical address on every chain, including testnet. No extra infrastructure to stand up.
+2. **Pay and settle.** The client signs a Permit2 `PermitTransferFrom` authorization and re-sends the same request with an `X-PAYMENT` header. The server decodes it, relays `Permit2.permitTransferFrom` onchain to settle the payment, then, only after settlement confirms, executes the agent's actual billable action (e.g. supply to Venus, fire a grid swap, grow a V3 position).
 
 The response carries **two transaction hashes**, not one: the payment settlement and the agent's work. A hire that only charges isn't a hire.
 
@@ -68,15 +68,15 @@ res2 = POST /api/hire/:id            → { payment: { txHash }, work: { txHash }
                                 └────────────────────────────────────┘
 ```
 
-Agent data (`src/lib/agents.ts`) is static — why is covered under [The solution](#the-solution) above, not repeated here.
+Agent data (`src/lib/agents.ts`) is static: why is covered under [The solution](#the-solution) above, not repeated here.
 
 ## Notable engineering decisions
 
-- No Altana SDK skill covers borrow/repay, PancakeSwap V3 liquidity, or grid trading — all four agents compose calls by hand against the underlying contracts (Comptroller, NonfungiblePositionManager, Router).
-- Two of the four agents' state-changing calls (`redeem`/`repayBorrow` on Venus) can't run through an Altana scoped session — `NoSpendPermissions` regardless of the declared permission — so those specific calls go through the admin execution path instead.
+- No Altana SDK skill covers borrow/repay, PancakeSwap V3 liquidity, or grid trading. All four agents compose calls by hand against the underlying contracts (Comptroller, NonfungiblePositionManager, Router).
+- Two of the four agents' state-changing calls (`redeem`/`repayBorrow` on Venus) can't run through an Altana scoped session, `NoSpendPermissions` regardless of the declared permission, so those specific calls go through the admin execution path instead.
 - Testnet USDT is 6 decimals, not the 18 documented in Venus's mainnet-oriented SKILL.md; verifying `decimals()` against the real testnet contract, not the docs, is what caught it.
-- The full build log — every bug, its root cause, the fix, and the lesson — is in [`AGENT_LOG.md`](./AGENT_LOG.md). The agent-building work itself (indexer, wallets, raw scripts) happened in the sibling `BNB-Hackaton` repo; the log is copied here so the full story is in one place.
-- [`AGENT_ADVANTAGE_REPORT.md`](./AGENT_ADVANTAGE_REPORT.md) compares 3 of the 4 tasks (including grid trading) done manually vs. hired through the agent — real transactions only, manual-cost figures labeled as real (cited from AGENT_LOG.md) or estimated.
+- The full build log, every bug, its root cause, the fix, and the lesson, is in [`AGENT_LOG.md`](./AGENT_LOG.md). The agent-building work itself (indexer, wallets, raw scripts) happened in the sibling `BNB-Hackaton` repo; the log is copied here so the full story is in one place.
+- [`AGENT_ADVANTAGE_REPORT.md`](./AGENT_ADVANTAGE_REPORT.md) compares 3 of the 4 tasks (including grid trading) done manually vs. hired through the agent: real transactions only, manual-cost figures labeled as real (cited from AGENT_LOG.md) or estimated.
 
 ## Stack
 
@@ -96,7 +96,7 @@ Create `.env.local` with:
 
 ```
 WALLET_ADDRESS=<agentic wallet address, 0x5bc1C0...>
-ADMIN_PRIVATE_KEY=<admin key for the agent wallet — testnet only, never commit>
+ADMIN_PRIVATE_KEY=<admin key for the agent wallet, testnet only, never commit>
 X402_SESSION_SIGNER_KEY=<key used to sign the demo's Permit2 payment>
 ```
 
@@ -106,6 +106,6 @@ pnpm dev
 
 The app runs on [http://localhost:3100](http://localhost:3100).
 
-No wallet extension is wired up client-side — the demo signs the x402 Permit2 payment server-side via a Server Action, since there's no browser wallet connection in this build. See `src/app/actions/hire.ts`.
+No wallet extension is wired up client-side. The demo signs the x402 Permit2 payment server-side via a Server Action, since there's no browser wallet connection in this build. See `src/app/actions/hire.ts`.
 
 **[`docs/USAGE.md`](docs/USAGE.md)** is the full operating guide: the walkthrough, what the two returned hashes prove, why the hire takes ~30s, per-hire testnet cost, how to refund the wallet when tBNB runs out (the faucet needs mainnet BNB *and* a human-solved CAPTCHA), and a troubleshooting table.

@@ -51,12 +51,12 @@ export default function HealthFactorGauge({ before, after, threshold }: HealthFa
       <div className="mt-7 flex items-center justify-between">
         <div>
           <div className="font-mono text-lg font-semibold text-red-400">{before.toFixed(4)}</div>
-          <div className="text-xs text-bnb-muted">Before — at risk</div>
+          <div className="text-xs text-bnb-muted">Before: at risk</div>
         </div>
         <span className="text-xl text-bnb-gold">&rarr;</span>
         <div className="text-right">
           <div className="font-mono text-lg font-semibold text-emerald-400">{after.toFixed(4)}</div>
-          <div className="text-xs text-bnb-muted">After — rescued</div>
+          <div className="text-xs text-bnb-muted">After: rescued</div>
         </div>
       </div>
     </div>

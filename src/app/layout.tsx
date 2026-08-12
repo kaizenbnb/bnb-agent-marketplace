@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KaizenScope — BNB Agent Marketplace",
+  title: "KaizenScope: BNB Agent Marketplace",
   description: "Marketplace of verified ERC-8004 agents live on BNB Chain testnet",
 };
 

@@ -92,7 +92,7 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
 
       {status === "settling" && (
         <p className="mt-3 text-xs text-bnb-muted">
-          Settling the Permit2 payment, then running the agent&apos;s own transaction —
+          Settling the Permit2 payment, then running the agent&apos;s own transaction,
           in that order, so the work only runs if the payment cleared. Typically ~30s;
           this page is not stuck.
         </p>
@@ -100,7 +100,7 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
 
       {status === "unavailable" && (
         <p className="mt-3 text-xs text-bnb-muted">
-          The x402 hire flow isn't wired up for this agent yet — being generalized one
+          The x402 hire flow isn't wired up for this agent yet, being generalized one
           agent at a time.
         </p>
       )}
