@@ -1,0 +1,17 @@
+BSC head=115246425  block-time~0.450s  ventana30d~5,758,464 bloques
+Ventana actividad: 60,000 bloques (~0.3d)  (usa --full-30d para 30d completos)
+
+== BRC8004 (fork BNB Chain) ==
+  [brc8004] agentes a analizar: 26
+  [brc8004] escaneando actividad y feedback (115186425..115246425)...
+  [brc8004] resolviendo 26 AgentCards...
+
+== ERC-8004 oficial (vanity 0x8004) ==
+  [official] agentes a analizar: 40 (MUESTRA)
+  [official] escaneando actividad y feedback (115186425..115246425)...
+  [official] resolviendo 40 AgentCards...
+
+CSV     -> C:\proyectos\BNB-Hackaton\output\agents_20260811.csv
+Resumen -> C:\proyectos\BNB-Hackaton\output\summary_20260811.md
+
+Gate: PIVOTE A CURACION (66 < 100) -- catalogo de 'los N verificados de BSC'  |  catalogo semilla = 0

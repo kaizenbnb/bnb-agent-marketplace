@@ -1,0 +1,45 @@
+[
+  {
+    "type": "function",
+    "name": "markets",
+    "stateMutability": "view",
+    "inputs": [{"type": "address", "name": ""}],
+    "outputs": [
+      {"type": "bool", "name": "isListed"},
+      {"type": "uint256", "name": "collateralFactorMantissa"},
+      {"type": "bool", "name": "isVenus"}
+    ]
+  },
+  {
+    "type": "function",
+    "name": "oracle",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{"type": "address", "name": ""}]
+  },
+  {
+    "type": "function",
+    "name": "enterMarkets",
+    "stateMutability": "nonpayable",
+    "inputs": [{"type": "address[]", "name": "cTokens"}],
+    "outputs": [{"type": "uint256[]", "name": ""}]
+  },
+  {
+    "type": "function",
+    "name": "getAccountLiquidity",
+    "stateMutability": "view",
+    "inputs": [{"type": "address", "name": "account"}],
+    "outputs": [
+      {"type": "uint256", "name": "error"},
+      {"type": "uint256", "name": "liquidity"},
+      {"type": "uint256", "name": "shortfall"}
+    ]
+  },
+  {
+    "type": "function",
+    "name": "closeFactorMantissa",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{"type": "uint256", "name": ""}]
+  }
+]

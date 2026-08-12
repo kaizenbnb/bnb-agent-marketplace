@@ -1,0 +1,4 @@
+requests>=2.31
+eth-abi>=5.0
+eth-utils>=4.0
+eth-hash[pycryptodome]>=0.7    # backend keccak requerido por eth-utils en Python 3.9+

@@ -1,0 +1,27 @@
+registry,agent_id,owner,agent_uri,card_resolvable,card_name,feedback_count,feedback_method,last_activity_block,active_30d,card_note
+brc8004,1,0x350ddeE488F2080568F2fb68CBb9Aa8CA33fA24F,"data:application/json;base64,eyJ0eXBlIjoiYnJjODAwNC1hZ2VudC1yZWdpc3RyYXRpb24iLCJ2ZXJzaW9uIjoiMS4wIiwibmFtZSI6IlRlc3QiLCJkZXNjcmlwdGlvbiI6IkEgdGVzdCBhZ2VudCBmb3IgQlJDODAwNCBwcm90b2NvbCBkZW1vbnN0cmF0aW9uIiwic2VydmljZXMiOlt7InR5cGUiOiJhcGkiLCJ1cmwiOiJodHRwczovL2V4YW1wbGUuY29tL2FwaSJ9XSwicmVnaXN0cmF0aW9ucyI6W119",False,,0,event-30d,,False,uri no http/https/ipfs
+brc8004,2,0x350ddeE488F2080568F2fb68CBb9Aa8CA33fA24F,ipfs://bafkreiaezyduf2xrhf7ub35tdn3n2q3zthymkygy7u2koxlj6bgsc2xk7e,True,PicTest,0,event-30d,,False,ok
+brc8004,3,0x350ddeE488F2080568F2fb68CBb9Aa8CA33fA24F,ipfs://bafkreib67wqwpwv2dzlb7dujqvpgzretr4wlipnxpkynm4w42qjuilkrqq,True,BRC8004,0,event-30d,,False,ok
+brc8004,4,0xC28dE37a0440aa6F3964Ce1df6bD6717Bb7b9D72,ipfs://bafkreifmrijiws4ven6oxvyzkrfphfrvswk3fqwwa63q5mgl46vrsfhh3u,True,大鸡巴,0,event-30d,,False,ok
+brc8004,5,0x54e6cff46DfB081fe37D4cB5DdFBc28bFA0C19f3,ipfs://bafkreifrn7eugmwlv5zdukttxzii6zd7wdhzia5j2oixqiqmrhhzjhpbbi,True,tgead,0,event-30d,,False,ok
+brc8004,6,0xdbbA50E6f254D6f93318f415CF642Cd8549bce4e,ipfs://bafkreie2vm7rt7lgd3ygikeiielx5hfxhcrete24vpvwen2g2vh7idcrzq,True,Epstein,0,event-30d,,False,ok
+brc8004,7,0xdbbA50E6f254D6f93318f415CF642Cd8549bce4e,ipfs://bafkreiadssqemuzp4qnvtsr2rwrhioqghfk3rj35c5g3xm7bn4glugkbi4,True,X,0,event-30d,,False,ok
+brc8004,8,0xdbbA50E6f254D6f93318f415CF642Cd8549bce4e,ipfs://bafkreicagqu656443hlwtohzoim3m7cjhlc2cdevpg4dmnhj3hza3lb2sm,True,8,0,event-30d,,False,ok
+brc8004,9,0x97BAcd1Bd5Dc951d1e597a2Fe0a65767ee1C857b,"data:application/json;base64,eyJ0eXBlIjoiYnJjODAwNC1hZ2VudC1yZWdpc3RyYXRpb24iLCJ2ZXJzaW9uIjoiMS4wIiwibmFtZSI6IkFydGVtaWNzIiwiZGVzY3JpcHRpb24iOiIiLCJzZXJ2aWNlcyI6W3sidHlwZSI6IldlYiIsInVybCI6Imh0dHBzOi8vZm91ci5tZW1lP2NvZGU9QzVVRTJNNUg4OUZDIn1dLCJyZWdpc3RyYXRpb25zIjpbXSwic3VwcG9ydGVkVHJ1c3QiOlsicmVwdXRhdGlvbiJdfQ==",False,,0,event-30d,,False,uri no http/https/ipfs
+brc8004,10,0x54D294C690A16BA0224ec6aaC5926f2B91bD7181,ipfs://bafkreigawnwdxkxe4o4gbz5quaxcnjhcrigh2dp4hu7qefkzfb72onqrv4,True,AIDOG,0,event-30d,,False,ok
+brc8004,11,0x40e9CF846C1eC09dACAD6d714E8f1E2c47Bd0EF1,"data:application/json,%7B%22name%22%3A%220xUniko%22%2C%22description%22%3A%22%22%2C%22services%22%3A%5B%7B%22name%22%3A%22MCP%22%2C%22endpoint%22%3A%22npx%20%40bnb-chain%2Fmcp%40latest%22%7D%5D%7D",False,,0,event-30d,,False,uri no http/https/ipfs
+brc8004,12,0x9DA99D00A0Fc69022292a56Ac9507d4681357e76,https://example.com/agent.json,False,,0,event-30d,,False,HTTP 404
+brc8004,13,0xb4ED350418f0BC6f5BCdcc7a6D51cAb067D14bbA,https://mefai.io/api/bnbagent/agent,False,,0,event-30d,,False,HTTP 404
+brc8004,14,0x2A997f70FdfE7B3adaF9c5236d7FCD02385E097C,https://mefai.io/api/bnbagent/agent,False,,0,event-30d,,False,HTTP 404
+brc8004,15,0x695E492398A51D2Ef5c699818e9616718aaEd1c1,https://four-life.gudman.xyz/.well-known/agent-registration.json,True,FOUR-LIFE,0,event-30d,,False,ok
+brc8004,16,0x695E492398A51D2Ef5c699818e9616718aaEd1c1,https://four-life.gudman.xyz/.well-known/agent-registration.json,True,FOUR-LIFE,0,event-30d,,False,ok
+brc8004,17,0x695E492398A51D2Ef5c699818e9616718aaEd1c1,https://four-life.gudman.xyz/.well-known/agent-registration.json,True,FOUR-LIFE,0,event-30d,,False,ok
+brc8004,18,0x695E492398A51D2Ef5c699818e9616718aaEd1c1,https://four-life.gudman.xyz/.well-known/agent-registration.json,True,FOUR-LIFE,0,event-30d,,False,ok
+brc8004,19,0x695E492398A51D2Ef5c699818e9616718aaEd1c1,https://four-life.gudman.xyz/.well-known/agent-registration.json,True,FOUR-LIFE,0,event-30d,,False,ok
+brc8004,20,0x695E492398A51D2Ef5c699818e9616718aaEd1c1,https://four-life.gudman.xyz/.well-known/agent-registration.json,True,FOUR-LIFE,0,event-30d,,False,ok
+brc8004,21,0xEE8b8B231f8a1ed63Ff6232903DdE1ab8893A022,https://api.fengshuibnb.com/master-xuan/.well-known/agent-card.json,False,,0,event-30d,,False,HTTP 526
+brc8004,22,0xa5bc684df641Bf1c108Cd2E2B282393bEEc4F13D,https://api.fengshuibnb.com/claude-b402/.well-known/agent-card.json,False,,0,event-30d,,False,HTTP 526
+brc8004,23,0x3551f68748AACDd77d28a4149C014f8FFbb95f91,https://raw.githubusercontent.com/nickthelegend/xorr-agent-backend/master/agent_card.json,True,XORR,0,event-30d,,False,ok
+brc8004,24,0x0eF0Fa79e214f2a86D92EB1f5519CfF8ba30604e,ipfs://QmXyrvoavJGkS7iejtX37CNhyaDvoqbY9uuB5AAz2DxpVy,True,BacktestStrategyScanner,0,event-30d,,False,ok
+brc8004,25,0x89dD692115e718a0caf83FE559296aDFd5501ADb,"data:application/json,{""name"":""lista-earn-autocompounder"",""version"":""1"",""description"":""Autonomous stablecoin-vault rotation agent on ListaDAO Earn"",""wallet"":""0x89dD692115e718a0caf83FE559296aDFd5501ADb"",""strategy"":""stablecoin-vault-auto-rotate-highest-net-apy"",""protocol"":""ListaDAO Moolah ERC-4626"",""homepage"":""https://lista.org/lending/earn""}",False,,0,event-30d,,False,uri no http/https/ipfs
+brc8004,26,0xd1DD22D94b7FB5ad05356871E385d03267AAd8d0,https://weavr-eight.vercel.app/.well-known/agent-registration.json,True,Weavr,0,event-30d,,False,ok

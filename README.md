@@ -12,7 +12,7 @@ The official ERC-8004 registry on BSC mainnet (`0x8004A169...`) holds roughly **
 
 KaizenScope turns "I need an agent that does X" into a task-first lookup, not a registry dump. Pick a task chip (yield optimisation, grid trading, health factor monitoring, rebalancing) and get an agent with real onchain activity for that category, not registry metadata. Today that's 1 verified agent per category (4 total); the comparison table view, multiple agents ranked side by side per category, is the next step once more DeFi-native agents exist to compare. Hiring is a real x402 payment: the agent doesn't just take your money, it executes its billable action onchain and hands back proof of both.
 
-The 4 agents listed are curated, not a live feed of the ERC-8004 registry. We indexed it, see the sibling [`BNB-Hackaton`](https://github.com/kaizenbnb/BNB-Hackaton) repo, and found no DeFi-native agents in it: the registration front is Quack AI gasless bots, EvoEvo clones and meme-token spam, none of which declare a category the marketplace's rubric (yield, grid, health factor, rebalancing) can use. Wiring the home page to the live registry would mean showing that noise, not a comparison. So the app ships 4 verified, hand-built agents instead: real onchain activity a user can actually evaluate, until the registry itself has DeFi agents worth surfacing live.
+The 4 agents listed are curated, not a live feed of the ERC-8004 registry. We indexed the BSC registry (see [`agents/indexer/`](agents/indexer/) and [`agents/output/`](agents/output/)) and found no DeFi-native agents in it: the registration front is Quack AI gasless bots, EvoEvo clones and meme-token spam, none of which declare a category the marketplace's rubric (yield, grid, health factor, rebalancing) can use. Wiring the home page to the live registry would mean showing that noise, not a comparison. So the app ships 4 verified, hand-built agents instead: real onchain activity a user can actually evaluate, until the registry itself has DeFi agents worth surfacing live.
 
 ## Agents
 
@@ -75,8 +75,8 @@ Agent data (`src/lib/agents.ts`) is static: why is covered under [The solution](
 - No Altana SDK skill covers borrow/repay, PancakeSwap V3 liquidity, or grid trading. All four agents compose calls by hand against the underlying contracts (Comptroller, NonfungiblePositionManager, Router).
 - Two of the four agents' state-changing calls (`redeem`/`repayBorrow` on Venus) can't run through an Altana scoped session, `NoSpendPermissions` regardless of the declared permission, so those specific calls go through the admin execution path instead.
 - Testnet USDT is 6 decimals, not the 18 documented in Venus's mainnet-oriented SKILL.md; verifying `decimals()` against the real testnet contract, not the docs, is what caught it.
-- The full build log, every bug, its root cause, the fix, and the lesson, is in [`AGENT_LOG.md`](./AGENT_LOG.md). The agent-building work itself (indexer, wallets, raw scripts) happened in the sibling `BNB-Hackaton` repo; the log is copied here so the full story is in one place.
-- [`AGENT_ADVANTAGE_REPORT.md`](./AGENT_ADVANTAGE_REPORT.md) compares 3 of the 4 tasks (including grid trading) done manually vs. hired through the agent: real transactions only, manual-cost figures labeled as real (cited from AGENT_LOG.md) or estimated.
+- The full build log, every bug, its root cause, the fix, and the lesson, is in [`agents/AGENT_LOG.md`](agents/AGENT_LOG.md). The agent-building work itself (indexer, wallets, raw scripts) is in [`agents/`](agents/).
+- [`agents/AGENT_ADVANTAGE_REPORT.md`](agents/AGENT_ADVANTAGE_REPORT.md) compares 3 of the 4 tasks (including grid trading) done manually vs. hired through the agent: real transactions only, manual-cost figures labeled as real (cited from agents/AGENT_LOG.md) or estimated.
 
 ## Stack
 

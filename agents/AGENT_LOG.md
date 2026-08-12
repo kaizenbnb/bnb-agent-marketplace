@@ -1,4 +1,4 @@
-> El trabajo de construcción de los 4 agentes (indexer ERC-8004, wallets, scripts contra Venus/PancakeSwap) vive en el repo hermano [`BNB-Hackaton`](https://github.com/kaizenbnb/BNB-Hackaton). Este es el log completo de ese build, copiado aquí para que el jurado no tenga que abrir dos repos.
+> El trabajo de construcción de los 4 agentes (indexer ERC-8004, wallets, scripts contra Venus/PancakeSwap) vive en la carpeta [`agents/`](./) de este repo: [`agents/altana-agent/`](./altana-agent/) para los scripts, [`../indexer/`](../indexer/) para el indexer. Este es el log completo de ese build.
 
 # AGENT_LOG: BNB "Build the Era"
 

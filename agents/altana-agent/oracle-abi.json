@@ -1,0 +1,9 @@
+[
+  {
+    "type": "function",
+    "name": "getUnderlyingPrice",
+    "stateMutability": "view",
+    "inputs": [{"type": "address", "name": "vToken"}],
+    "outputs": [{"type": "uint256", "name": ""}]
+  }
+]

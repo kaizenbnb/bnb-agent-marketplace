@@ -1,0 +1,17 @@
+{
+  "name": "altana-agent",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@altananetwork/sdk": "^0.7.0",
+    "dotenv": "^17.4.2",
+    "viem": "^2.55.13"
+  }
+}
