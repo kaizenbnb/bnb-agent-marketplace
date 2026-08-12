@@ -75,6 +75,7 @@ Agent data (`src/lib/agents.ts`) is static and curated, not fetched live from th
 - Two of the four agents' state-changing calls (`redeem`/`repayBorrow` on Venus) can't run through an Altana scoped session — `NoSpendPermissions` regardless of the declared permission — so those specific calls go through the admin execution path instead.
 - Testnet USDT is 6 decimals, not the 18 documented in Venus's mainnet-oriented SKILL.md; verifying `decimals()` against the real testnet contract, not the docs, is what caught it.
 - The full build log — every bug, its root cause, the fix, and the lesson — is in [`AGENT_LOG.md`](./AGENT_LOG.md). The agent-building work itself (indexer, wallets, raw scripts) happened in the sibling `BNB-Hackaton` repo; the log is copied here so the full story is in one place.
+- [`AGENT_ADVANTAGE_REPORT.md`](./AGENT_ADVANTAGE_REPORT.md) compares 3 of the 4 tasks (including grid trading) done manually vs. hired through the agent — real transactions only, manual-cost figures labeled as real (cited from AGENT_LOG.md) or estimated.
 
 ## Stack
 
