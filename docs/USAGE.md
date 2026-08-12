@@ -62,7 +62,8 @@ Press Hire
    ├─ 2. Payment authorization is signed            ~31 ms
    │
    └─ 3. Settlement + the agent's own work          ~26-30 s
-         (waiting on real on-chain confirmations)
+         (~0.9 s of that is chain confirmation;
+          the rest is relay orchestration)
 ```
 
 You end up with **two transaction hashes, not one**:
@@ -114,7 +115,7 @@ Alternative faucets (QuickNode, Chainstack) are listed on the same page and may 
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Hire button sits on "Settling…" for ~30s | Expected, waiting on two real on-chain confirmations | Nothing. The counter is ticking; it isn't stuck. |
+| Hire button sits on "Settling…" for ~30s | Expected. Two sequential transactions, but almost none of that time is the chain: at a 0.450 s block time the two confirmations cost ~0.9 s, and the remaining ~28.5 s is relay orchestration | Nothing. The counter is ticking; it isn't stuck. |
 | Hire fails after settlement | Wallet out of tBNB, or the pool/protocol rejected the call | Check the balance, then the server console for the reverted call |
 | `EADDRINUSE: :::3100` | A dev server is already running on that port | Reuse it, or stop the existing process |
 | Some agent's Hire returns 501 | That agent has no work action wired up | Expected only if `WORK_ACTIONS` in the hire route lacks an entry; all 4 are wired |
