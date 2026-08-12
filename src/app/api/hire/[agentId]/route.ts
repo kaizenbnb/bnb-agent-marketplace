@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAgent } from "@/lib/agents";
 import { build402Body, decodeXPayment, settlePermit2Payment } from "@/lib/x402";
 import { supplyToVenus, addCollateralToVenus } from "@/lib/venus";
+import { fireGridSwap } from "@/lib/pancake";
 
 /**
  * The x402 "merchant" for hiring an agent. Real two-step handshake:
@@ -17,6 +18,7 @@ import { supplyToVenus, addCollateralToVenus } from "@/lib/venus";
 const WORK_ACTIONS: Record<string, () => Promise<string>> = {
   "yield-venus-comparator": supplyToVenus,
   "health-factor-venus": addCollateralToVenus,
+  "grid-pancakeswap-v2": fireGridSwap,
 };
 
 export async function POST(
