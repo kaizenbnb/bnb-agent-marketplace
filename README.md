@@ -1,9 +1,8 @@
 # KaizenScope
 
-An intent-first marketplace for hiring ERC-8004 agents on BNB Smart Chain — pick a task, compare 3 comparable agents by onchain reputation, cost and liveness, hire in one click via x402.
+![KaizenScope demo: home, task chip, agent detail, hiring, two settled transactions](docs/demo.gif)
 
-<!-- TODO: demo GIF -->
-<!-- ![KaizenScope demo](docs/demo.gif) -->
+An intent-first marketplace for hiring ERC-8004 agents on BNB Smart Chain — pick a task, see the real agent live for it, hire in one click via x402.
 
 ## The problem
 
@@ -11,20 +10,22 @@ The official ERC-8004 registry on BSC mainnet (`0x8004A169...`) holds roughly **
 
 ## The solution
 
-KaizenScope turns "I need an agent that does X" into a 3-agent comparison table, not a registry dump. Pick a task chip — yield optimisation, grid trading, health factor monitoring, rebalancing — and get agents with real onchain activity, not registry metadata. Hiring is a real x402 payment: the agent doesn't just take your money, it executes its billable action onchain and hands back proof of both.
+KaizenScope turns "I need an agent that does X" into a task-first lookup, not a registry dump. Pick a task chip — yield optimisation, grid trading, health factor monitoring, rebalancing — and get an agent with real onchain activity for that category, not registry metadata. Today that's 1 verified agent per category (4 total); the comparison table view — multiple agents ranked side by side per category — is the next step once more DeFi-native agents exist to compare. Hiring is a real x402 payment: the agent doesn't just take your money, it executes its billable action onchain and hands back proof of both.
+
+The 4 agents listed are curated, not a live feed of the ERC-8004 registry. We indexed it — see the sibling [`BNB-Hackaton`](https://github.com/kaizenbnb/BNB-Hackaton) repo — and found no DeFi-native agents in it: the registration front is Quack AI gasless bots, EvoEvo clones and meme-token spam, none of which declare a category the marketplace's rubric (yield, grid, health factor, rebalancing) can use. Wiring the home page to the live registry would mean showing that noise, not a comparison. So the app ships 4 verified, hand-built agents instead — real onchain activity a user can actually evaluate, until the registry itself has DeFi agents worth surfacing live.
 
 ## Agents
 
 4 agents, live on BNB Smart Chain Testnet, each built by hand against its protocol (no Altana skill covers borrow/repay, V3 liquidity, or grid logic — see [Architecture](#architecture)).
 
-| Agent | Category | Protocol | Wallet | Explorer |
-|---|---|---|---|---|
-| Venus Yield Comparator | Yield Optimisation | Venus Protocol (Core Pool) | `0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb` | [BscScan](https://testnet.bscscan.com/address/0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb) |
-| Venus Health Factor Guardian | Health Factor Monitoring | Venus Protocol (Comptroller + vBNB + vUSDT) | `0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb` | [BscScan](https://testnet.bscscan.com/address/0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb) |
-| PancakeSwap Grid Bot | Grid Trading | PancakeSwap V2 (Router) | `0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb` | [BscScan](https://testnet.bscscan.com/address/0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb) |
-| PancakeSwap V3 Range Manager | Rebalancing | PancakeSwap V3 (NonfungiblePositionManager) | `0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb` | [BscScan](https://testnet.bscscan.com/address/0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb) |
+All 4 currently share one agentic wallet (`0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb`) rather than one wallet each — a shortcut taken to ship the x402 flow across all 4 agents first; per-agent wallets are the next infra step, not yet done. Every metric shown in the app (health factor before/after, grid step, position ranges) is read from a real onchain transaction — the "Work tx" column below is each agent's actual billable action, not a placeholder.
 
-All 4 share one agentic wallet. Every metric shown in the app (health factor before/after, grid step, position ranges) is read from a real onchain transaction — see each agent's detail page for the tx hashes.
+| Agent | Category | Protocol | Wallet | Work tx |
+|---|---|---|---|---|
+| Venus Yield Comparator | Yield Optimisation | Venus Protocol (Core Pool) | [BscScan](https://testnet.bscscan.com/address/0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb) | [Supply to Venus](https://testnet.bscscan.com/tx/0x3cb2f287b53d26077d4169638910ecb7d4b42319899d2e8f9d823ccd3f527672) |
+| Venus Health Factor Guardian | Health Factor Monitoring | Venus Protocol (Comptroller + vBNB + vUSDT) | [BscScan](https://testnet.bscscan.com/address/0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb) | [Protective repay](https://testnet.bscscan.com/tx/0x557c3171ea77fba6c53ccaafbd73719589c5d147c9977b158201c222363392c1) |
+| PancakeSwap Grid Bot | Grid Trading | PancakeSwap V2 (Router) | [BscScan](https://testnet.bscscan.com/address/0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb) | [Kick-off swap](https://testnet.bscscan.com/tx/0xa5c689a0a3684935cf6d1446eaad9a3903c8471f152be9cd1b42debd58706e91) |
+| PancakeSwap V3 Range Manager | Rebalancing | PancakeSwap V3 (NonfungiblePositionManager) | [BscScan](https://testnet.bscscan.com/address/0x5bc1C0779fC435f5C8Dd2692E667e51716e1e9fb) | [Reposition (mint B)](https://testnet.bscscan.com/tx/0x5ae725b19bccdf05f256051493170eea5c00f20f0386f1f4f3187dd1fecebd24) |
 
 ## How hiring works: x402
 
@@ -47,7 +48,7 @@ res2 = POST /api/hire/:id            → { payment: { txHash }, work: { txHash }
 ┌─────────────┐     task chip / search      ┌──────────────────┐
 │   Browser    │ ───────────────────────────▶│  Next.js App     │
 │  (KaizenScope)│◀─────────────────────────── │  Router (RSC)     │
-└─────────────┘     agent comparison table    └──────┬───────────┘
+└─────────────┘     agent card + detail page  └──────┬───────────┘
                                                        │
                                        POST /api/hire/[agentId]
                                                        │
@@ -67,7 +68,7 @@ res2 = POST /api/hire/:id            → { payment: { txHash }, work: { txHash }
                                 └────────────────────────────────────┘
 ```
 
-Agent data (`src/lib/agents.ts`) is static and curated, not fetched live from the ERC-8004 registry — the indexer that sampled the 263K-agent registry lives in the sibling [`BNB-Hackaton`](https://github.com/kaizenbnb/BNB-Hackaton) repo and informed the category taxonomy, but this frontend ships with 4 verified, hand-built agents rather than a live feed of unclassified registrations. See [Notable engineering decisions](#notable-engineering-decisions) for why.
+Agent data (`src/lib/agents.ts`) is static — why is covered under [The solution](#the-solution) above, not repeated here.
 
 ## Notable engineering decisions
 
