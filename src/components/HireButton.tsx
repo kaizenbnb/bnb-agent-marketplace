@@ -75,8 +75,8 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
 
       {status === "unavailable" && (
         <p className="mt-3 text-xs text-bnb-muted">
-          The x402 hire flow is live for the Venus Yield Comparator only so far — being
-          generalized to the other agents next.
+          The x402 hire flow isn't wired up for this agent yet — being generalized one
+          agent at a time.
         </p>
       )}
 

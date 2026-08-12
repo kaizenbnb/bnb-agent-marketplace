@@ -1,8 +1,13 @@
-import { createPublicClient, http, encodeFunctionData, type Address, type Hex } from "viem";
+import { createPublicClient, http, encodeFunctionData, parseEther, type Address, type Hex } from "viem";
 import { createClient, BNB_TESTNET, signerFromPrivateKey } from "@altananetwork/sdk";
 
 export const USDT_TESTNET: Address = "0xA11c8D9DC9b66E209Ef60F0C8D969D3CD988782c";
 export const VUSDT_TESTNET: Address = "0xb7526572FFE56AB9D7489838Bf2E18e3323b441A";
+export const VBNB_TESTNET: Address = "0x2E7222e51c0f6e98610A1543Aa3836E092CDe62c";
+
+export const vbnbAbi = [
+  { type: "function", name: "mint", stateMutability: "payable", inputs: [], outputs: [] },
+] as const;
 
 export const usdtAbi = [
   { type: "function", name: "allocateTo", stateMutability: "nonpayable", inputs: [{ type: "address" }, { type: "uint256" }], outputs: [] },
@@ -68,5 +73,39 @@ export async function supplyToVenus(amountUsdt = 1_000_000n): Promise<Hex> {
 
   const result = await client.execute({ wallet, signer: adminSigner, calls: [allocateCall, approveCall, mintCall] });
   if (!result.transactionHash) throw new Error("supplyToVenus: execute() returned no transaction hash");
+  return result.transactionHash;
+}
+
+/**
+ * The health-factor agent's real, billable action: add collateral. Uses
+ * vBNB.mint() (payable), deliberately NOT repayBorrow() -- repayBorrow()/
+ * redeem() are confirmed unsupported through a scoped session in
+ * @altananetwork/sdk@0.7.0 (NoSpendPermissions regardless of the declared
+ * permission, see AGENT_LOG.md); mint() works fine via session, unlike the
+ * yield action this one deliberately goes through a freshly-granted scoped
+ * session rather than the admin path, to demonstrate the working case.
+ */
+export async function addCollateralToVenus(amountBnb = parseEther("0.01")): Promise<Hex> {
+  const wallet = { address: process.env.WALLET_ADDRESS as Address };
+  const adminSigner = signerFromPrivateKey(process.env.ADMIN_PRIVATE_KEY as Hex);
+  const client = createClient({ chains: [BNB_TESTNET] });
+
+  const session = await client.grantSession({
+    wallet,
+    signer: adminSigner,
+    permissions: {
+      calls: [{ to: VBNB_TESTNET }],
+      spend: [{ limit: amountBnb + parseEther("0.01"), period: "day" }],
+    },
+    expiry: Math.floor(Date.now() / 1000) + 3600,
+  });
+
+  const mintCall = {
+    to: VBNB_TESTNET, value: amountBnb,
+    data: encodeFunctionData({ abi: vbnbAbi, functionName: "mint", args: [] }),
+  };
+
+  const result = await client.execute({ session, calls: [mintCall] });
+  if (!result.transactionHash) throw new Error("addCollateralToVenus: execute() returned no transaction hash");
   return result.transactionHash;
 }

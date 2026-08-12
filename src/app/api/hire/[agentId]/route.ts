@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAgent } from "@/lib/agents";
 import { build402Body, decodeXPayment, settlePermit2Payment } from "@/lib/x402";
-import { supplyToVenus } from "@/lib/venus";
+import { supplyToVenus, addCollateralToVenus } from "@/lib/venus";
 
 /**
  * The x402 "merchant" for hiring an agent. Real two-step handshake:
@@ -10,9 +10,15 @@ import { supplyToVenus } from "@/lib/venus";
  *      on-chain, then executes the agent's real billable action, and returns
  *      BOTH transaction hashes. A hire that only charges isn't a hire.
  *
- * Only wired up for the yield agent for now -- verify the full loop on one
- * agent before generalizing to the other three (see AGENT_LOG.md).
+ * Generalized one agent at a time, each verified end-to-end before the next
+ * (see AGENT_LOG.md in BNB-Hackaton for the underlying agent lessons).
  */
+
+const WORK_ACTIONS: Record<string, () => Promise<string>> = {
+  "yield-venus-comparator": supplyToVenus,
+  "health-factor-venus": addCollateralToVenus,
+};
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ agentId: string }> }
@@ -23,9 +29,10 @@ export async function POST(
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
-  if (agentId !== "yield-venus-comparator") {
+  const doWork = WORK_ACTIONS[agentId];
+  if (!doWork) {
     return NextResponse.json(
-      { error: "The x402 hire flow is only wired up for the yield agent so far." },
+      { error: "The x402 hire flow isn't wired up for this agent yet." },
       { status: 501 }
     );
   }
@@ -53,7 +60,7 @@ export async function POST(
   }
 
   try {
-    const workTxHash = await supplyToVenus();
+    const workTxHash = await doWork();
     return NextResponse.json({
       status: "hired",
       agent: agent.name,
