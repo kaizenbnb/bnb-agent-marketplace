@@ -28,6 +28,16 @@ export type Agent = {
 
 export const EXPLORER_TX_BASE = "https://testnet.bscscan.com/tx/";
 export const EXPLORER_ADDRESS_BASE = "https://testnet.bscscan.com/address/";
+export const GITHUB_REPO_URL = "https://github.com/kaizenbnb/bnb-agent-marketplace";
+
+/**
+ * Total agents observed in the official ERC-8004 registry on BSC mainnet
+ * (0x8004A169...) during the BNB-Hackaton indexing session — ownerOf probes
+ * reverted past agentId ~263,400. Not derivable from this repo's data (a
+ * separate indexer run in a different project); sourced from AGENT_LOG.md
+ * there rather than fabricated.
+ */
+export const AGENTS_INDEXED_ON_BSC = 263_000;
 
 export const CATEGORIES: Category[] = [
   {
@@ -173,4 +183,22 @@ export function searchAgents(query: string): Agent[] {
       a.summary.toLowerCase().includes(q) ||
       a.category.includes(q)
   );
+}
+
+export function getAgentCount(slug: CategorySlug): number {
+  return AGENTS.filter((a) => a.category === slug).length;
+}
+
+export type HomeStat = { label: string; value: string };
+
+export function getHomeStats(): HomeStat[] {
+  const onchainTxCount = AGENTS.reduce((sum, a) => sum + a.transactions.length, 0);
+  const protocolFamilies = new Set(AGENTS.map((a) => a.protocol.match(/^\w+/)?.[0] ?? a.protocol));
+
+  return [
+    { label: "Live agents", value: String(AGENTS.length) },
+    { label: "Onchain transactions", value: String(onchainTxCount) },
+    { label: "Protocols integrated", value: String(protocolFamilies.size) },
+    { label: "Agents indexed on BSC", value: `${(AGENTS_INDEXED_ON_BSC / 1000).toFixed(0)}K+` },
+  ];
 }
