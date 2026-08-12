@@ -13,7 +13,7 @@ import { growPositionB } from "@/lib/v3";
  *      BOTH transaction hashes. A hire that only charges isn't a hire.
  *
  * Generalized one agent at a time, each verified end-to-end before the next
- * (see AGENT_LOG.md in BNB-Hackaton for the underlying agent lessons).
+ * (see AGENT_LOG.md at the repo root for the underlying agent lessons).
  */
 
 const WORK_ACTIONS: Record<string, () => Promise<string>> = {

@@ -74,7 +74,7 @@ Agent data (`src/lib/agents.ts`) is static and curated, not fetched live from th
 - No Altana SDK skill covers borrow/repay, PancakeSwap V3 liquidity, or grid trading — all four agents compose calls by hand against the underlying contracts (Comptroller, NonfungiblePositionManager, Router).
 - Two of the four agents' state-changing calls (`redeem`/`repayBorrow` on Venus) can't run through an Altana scoped session — `NoSpendPermissions` regardless of the declared permission — so those specific calls go through the admin execution path instead.
 - Testnet USDT is 6 decimals, not the 18 documented in Venus's mainnet-oriented SKILL.md; verifying `decimals()` against the real testnet contract, not the docs, is what caught it.
-- The full build log — every bug, its root cause, the fix, and the lesson — is in [`AGENT_LOG.md`](https://github.com/kaizenbnb/BNB-Hackaton/blob/main/AGENT_LOG.md) in the sibling `BNB-Hackaton` repo, which owns the indexer and the raw agent scripts this frontend's `src/lib/*.ts` modules were built from.
+- The full build log — every bug, its root cause, the fix, and the lesson — is in [`AGENT_LOG.md`](./AGENT_LOG.md). The agent-building work itself (indexer, wallets, raw scripts) happened in the sibling `BNB-Hackaton` repo; the log is copied here so the full story is in one place.
 
 ## Stack
 
