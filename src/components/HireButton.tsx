@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signHirePayment } from "@/app/actions/hire";
 import { EXPLORER_TX_BASE } from "@/lib/agents";
 
@@ -10,9 +10,25 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ paymentTx: string; workTx: string } | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+
+  const busy = status === "requesting" || status === "signing" || status === "settling";
+
+  /**
+   * The settling step waits on real on-chain confirmations (Permit2 settlement,
+   * then the agent's own transaction), which measured ~29s end-to-end. Without a
+   * ticking counter the label sits unchanged that whole time and reads as a
+   * frozen UI rather than work in progress.
+   */
+  useEffect(() => {
+    if (!busy) return;
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [busy]);
 
   async function handleHire() {
     setError(null);
+    setElapsed(0);
     try {
       // Step 1: real fetch, no payment yet -> expect 402 with requirements.
       setStatus("requesting");
@@ -54,11 +70,10 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
     }
   }
 
-  const busy = status === "requesting" || status === "signing" || status === "settling";
   const label =
-    status === "requesting" ? "Requesting terms (402)..." :
-    status === "signing" ? "Signing payment..." :
-    status === "settling" ? "Settling + running the agent..." :
+    status === "requesting" ? "Requesting terms (402)…" :
+    status === "signing" ? "Signing payment…" :
+    status === "settling" ? `Settling + running the agent… ${elapsed}s` :
     status === "done" ? "Hired" :
     `Hire ${agentName}`;
 
@@ -72,6 +87,13 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
       >
         {label}
       </button>
+
+      {status === "settling" && (
+        <p className="mt-3 text-xs text-bnb-muted">
+          Waiting on two real onchain confirmations — the Permit2 payment, then the
+          agent&apos;s own transaction. Typically ~30s on BSC testnet; this page is not stuck.
+        </p>
+      )}
 
       {status === "unavailable" && (
         <p className="mt-3 text-xs text-bnb-muted">
