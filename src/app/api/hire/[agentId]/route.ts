@@ -83,14 +83,6 @@ export async function POST(
 
   const ip = getClientIp(req);
 
-  // Rate limit: max 5 requests per IP per hour
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json(
-      { error: "Too many requests. Max 5 hires per hour per IP." },
-      { status: 429 }
-    );
-  }
-
   const agent = getAgent(agentId);
   if (!agent) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -131,6 +123,17 @@ export async function POST(
       amount
     );
     return NextResponse.json(body, { status: 402 });
+  }
+
+  // Rate limit only real execution attempts (a payment header is present) --
+  // the negotiation round-trip above just echoes the price back and touches
+  // no chain state, so it shouldn't burn a buyer's quota before they've
+  // signed anything.
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: "Too many hire attempts. Max 5 per hour per IP." },
+      { status: 429 }
+    );
   }
 
   let payload;
