@@ -26,6 +26,10 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ paymentTx: string; workTx: string } | null>(null);
+  // Set when the server ran the agent's work but couldn't capture payment --
+  // the work still happened and is verifiable, even though the hire as a
+  // whole counts as failed.
+  const [partialWorkTx, setPartialWorkTx] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
   const busy = status === "requesting" || status === "signing" || status === "settling";
@@ -47,6 +51,7 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
   async function handleConfirm({ beneficiary }: HireModalSubmit) {
     setModalOpen(false);
     setError(null);
+    setPartialWorkTx(null);
     setElapsed(0);
     try {
       // Step 1: real fetch, no payment yet -> expect 402 with requirements.
@@ -124,6 +129,12 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
       });
       if (!res2.ok) {
         const errBody = await res2.json().catch(() => ({}));
+        // Work executed but payment capture failed (stale permit, relay
+        // hiccup, etc.) -- the server still hands back the work hash so the
+        // buyer can see the agent actually did the job.
+        if (errBody.work?.txHash) {
+          setPartialWorkTx(errBody.work.txHash);
+        }
         // Out of gas is a specific case; show the hint
         if (res2.status === 500 && errBody.hint?.includes("gas")) {
           throw new Error(errBody.error || "Agent wallet is out of gas");
@@ -192,7 +203,22 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
       )}
 
       {status === "error" && (
-        <p className="mt-3 text-xs text-red-400">{error}</p>
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-red-400">{error}</p>
+          {partialWorkTx && (
+            <a
+              href={`${EXPLORER_TX_BASE}${partialWorkTx}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between rounded-lg border border-bnb-line bg-bnb-card px-4 py-3 text-sm hover:border-bnb-gold"
+            >
+              <span className="text-bnb-text/80">Agent work executed (payment not captured)</span>
+              <span className="font-mono text-xs text-bnb-gold">
+                {partialWorkTx.slice(0, 10)}…{partialWorkTx.slice(-8)}
+              </span>
+            </a>
+          )}
+        </div>
       )}
 
       {status === "done" && result && (

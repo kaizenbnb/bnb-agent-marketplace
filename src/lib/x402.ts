@@ -109,6 +109,71 @@ export function decodeXPayment(header: string): XPaymentPayload {
  * relay a validly-signed Permit2 authorization. Settlement doesn't require
  * the payer's key, only a valid signature already produced by them.
  */
+
+export type PermitFreshnessFailureReason = "nonce_used" | "insufficient_balance" | "insufficient_allowance";
+
+export type PermitFreshnessResult =
+  | { valid: true }
+  | { valid: false; reason: PermitFreshnessFailureReason };
+
+/**
+ * The three checks that can drift between when we first validate a permit
+ * and when we actually try to capture it: the nonce being consumed by then
+ * (only possible if this exact permit already settled, or -- pre-capture --
+ * a different capture attempt on the same nonce raced this one), the balance
+ * dropping, or the allowance dropping. All three are just reads, so this is
+ * cheap to call more than once per request. Doesn't check signature/spender/
+ * token/amount/deadline -- those can't change between calls, so re-checking
+ * them would just repeat the same recoverTypedDataAddress call for nothing.
+ */
+export async function checkPermitFreshness(payload: XPaymentPayload): Promise<PermitFreshnessResult> {
+  const publicClient = createPublicClient({ chain: bscTestnetRO, transport: http() });
+  const { permit, from } = payload.payload;
+  const permitAmount = BigInt(permit.permitted.amount);
+  const token = permit.permitted.token as Address;
+
+  const nonceValue = BigInt(permit.nonce);
+  const wordPos = nonceValue >> 8n; // nonce / 256
+  const bitPos = Number(nonceValue & 0xFFn); // nonce % 256
+  const bitmap = await publicClient.readContract({
+    address: PERMIT2_ADDRESS as Address,
+    abi: permit2Abi,
+    functionName: "nonceBitmap",
+    args: [from, wordPos],
+  });
+  const isBitSet = Boolean((bitmap >> BigInt(bitPos)) & 1n);
+  if (isBitSet) return { valid: false, reason: "nonce_used" };
+
+  const balance = await publicClient.readContract({
+    address: token,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: [from],
+  });
+  if (balance < permitAmount) return { valid: false, reason: "insufficient_balance" };
+
+  const allowance = await publicClient.readContract({
+    address: token,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: [from, PERMIT2_ADDRESS as Address],
+  });
+  if (allowance < permitAmount) return { valid: false, reason: "insufficient_allowance" };
+
+  return { valid: true };
+}
+
+export function describePermitFreshnessFailure(reason: PermitFreshnessFailureReason): string {
+  switch (reason) {
+    case "nonce_used":
+      return "This payment authorization has already been used.";
+    case "insufficient_balance":
+      return "USDT balance dropped below the required amount.";
+    case "insufficient_allowance":
+      return "USDT allowance to Permit2 dropped below the required amount.";
+  }
+}
+
 /**
  * Validate a decoded X-PAYMENT permit2 authorization WITHOUT writing to the blockchain.
  * Reads: signature recovery, nonceBitmap (to confirm nonce is unused), balanceOf, allowance.
@@ -123,7 +188,6 @@ export async function validatePermit2Authorization(
   payload: XPaymentPayload,
   expectedAmount: bigint
 ): Promise<boolean> {
-  const publicClient = createPublicClient({ chain: bscTestnetRO, transport: http() });
   const { permit, from, signature } = payload.payload;
   const permitAmount = BigInt(permit.permitted.amount);
   const deadline = BigInt(permit.deadline);
@@ -169,41 +233,12 @@ export async function validatePermit2Authorization(
     throw new Error(`Permit deadline ${deadline} has passed (now: ${now})`);
   }
 
-  // Check 2: nonce is still available (not yet used)
-  const nonceValue = BigInt(permit.nonce);
-  const wordPos = nonceValue >> 8n; // nonce / 256
-  const bitPos = Number(nonceValue & 0xFFn); // nonce % 256
-  const bitmap = await publicClient.readContract({
-    address: PERMIT2_ADDRESS as Address,
-    abi: permit2Abi,
-    functionName: "nonceBitmap",
-    args: [from, wordPos],
-  });
-  const isBitSet = Boolean((bitmap >> BigInt(bitPos)) & 1n);
-  if (isBitSet) {
-    throw new Error(`Nonce ${permit.nonce} already used (bitmap word ${wordPos}, bit ${bitPos})`);
-  }
-
-  // Check 3: owner has sufficient balance
-  const balance = await publicClient.readContract({
-    address: token,
-    abi: erc20Abi,
-    functionName: "balanceOf",
-    args: [from],
-  });
-  if (balance < permitAmount) {
-    throw new Error(`Insufficient balance: ${balance} < ${permitAmount} required`);
-  }
-
-  // Check 4: owner has approved Permit2 for at least the requested amount
-  const allowance = await publicClient.readContract({
-    address: token,
-    abi: erc20Abi,
-    functionName: "allowance",
-    args: [from, PERMIT2_ADDRESS as Address],
-  });
-  if (allowance < permitAmount) {
-    throw new Error(`Insufficient allowance: ${allowance} < ${permitAmount} required`);
+  // Checks 2-4: nonce unused, balance sufficient, allowance sufficient --
+  // shared with the pre-work/pre-capture freshness re-checks so there's one
+  // source of truth for what "still valid" means.
+  const freshness = await checkPermitFreshness(payload);
+  if (!freshness.valid) {
+    throw new Error(describePermitFreshnessFailure(freshness.reason));
   }
 
   return true;

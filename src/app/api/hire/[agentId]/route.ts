@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, type Address } from "viem";
 import { getAgent } from "@/lib/agents";
-import { build402Body, decodeXPayment, validatePermit2Authorization, settlePermit2Payment, HIRE_PRICE_USDT } from "@/lib/x402";
+import { build402Body, decodeXPayment, validatePermit2Authorization, settlePermit2Payment, checkPermitFreshness, describePermitFreshnessFailure, HIRE_PRICE_USDT } from "@/lib/x402";
 import { supplyToVenus, addCollateralToVenus } from "@/lib/venus";
 import { fireGridSwap } from "@/lib/pancake";
 import { growPositionB } from "@/lib/v3";
@@ -170,6 +170,19 @@ export async function POST(
     );
   }
 
+  // Step 1b: re-confirm the permit is still fresh immediately before WORK.
+  // Cheap (three reads, no signature recovery -- that part can't have
+  // changed), and avoids burning the agent's real gas on work we already
+  // know can't be paid for.
+  const preWorkFreshness = await checkPermitFreshness(payload);
+  if (!preWorkFreshness.valid) {
+    console.error("[hire] Permit went stale between validation and work:", preWorkFreshness.reason);
+    return NextResponse.json(
+      { error: describePermitFreshnessFailure(preWorkFreshness.reason) },
+      { status: 402 }
+    );
+  }
+
   // Step 2: WORK — execute the agent's billable action, on behalf of beneficiary
   let workTxHash: string;
   try {
@@ -190,6 +203,26 @@ export async function POST(
     return NextResponse.json(
       { error: "Agent work action failed before payment was captured. No charge has been made." },
       { status: 500 }
+    );
+  }
+
+  // Step 2b: re-confirm the permit is STILL fresh after ~30s of work. This is
+  // the real gap: the nonce, balance or allowance can drift during work
+  // execution in a way they can't between 1b and step 2 (which run back to
+  // back). If it's gone stale now, don't even attempt the on-chain capture
+  // call -- it would just revert and burn the relayer's gas for nothing.
+  // Fail with the work hash attached so the buyer can see the agent's side
+  // succeeded even though the charge didn't go through.
+  const preCaptureFreshness = await checkPermitFreshness(payload);
+  if (!preCaptureFreshness.valid) {
+    console.error("[hire] Permit went stale during work execution:", preCaptureFreshness.reason);
+    return NextResponse.json(
+      {
+        error: `${describePermitFreshnessFailure(preCaptureFreshness.reason)} Work succeeded but payment could not be captured.`,
+        work: { txHash: workTxHash },
+        hint: "The agent's work is verifiable on BscScan. Retry the hire — a fresh payment authorization will be generated.",
+      },
+      { status: 402 }
     );
   }
 
