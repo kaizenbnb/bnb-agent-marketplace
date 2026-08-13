@@ -1,6 +1,10 @@
 # KaizenScope
 
-![KaizenScope demo: home, task chip, agent detail, hiring, two settled transactions](docs/demo.gif)
+![KaizenScope home: task chips, Connect Wallet in the header](docs/screenshots/home.png)
+
+![Agent detail page: real metrics, onchain transactions, honest note](docs/screenshots/agent-detail.png)
+
+**Demo: hire result with two verified BSC Testnet transaction hashes** — placeholder. Connecting a wallet reveals a fixed-price "Hire" button (server-enforced, not buyer-editable) and, on success, two BscScan-verifiable transaction hashes (payment settled + agent work executed); capturing that screen needs a funded, signed wallet session against the current build, not yet recorded.
 
 **Live demo:** [https://bnb-agent-marketplace.vercel.app/](https://bnb-agent-marketplace.vercel.app/)
 
