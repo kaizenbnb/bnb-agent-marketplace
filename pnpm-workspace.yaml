@@ -4,3 +4,10 @@ allowBuilds:
   sharp: false
   unrs-resolver: false
   utf-8-validate: true
+
+overrides:
+  # cuer (RainbowKit's QR renderer) calls encodeQR with border:0, which
+  # qr@0.6.0 rejects ("invalid border=0"). Crashes any wallet-connect QR
+  # fallback (e.g. clicking MetaMask with no extension installed). Pin to
+  # the last version that still allows border 0.
+  qr: 0.5.5
