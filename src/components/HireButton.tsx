@@ -147,17 +147,12 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
     status === "done" ? "Hired" :
     `Hire ${agentName}`;
 
+  // Disconnected: no competing gold CTA here -- "Connect Wallet" in the
+  // header is the one gold button on screen. This just points at it.
   if (!isConnected) {
     return (
-      <div>
-        <button
-          type="button"
-          disabled
-          className="rounded-md bg-bnb-gold px-6 py-3 text-sm font-semibold text-bnb-carbon opacity-60 cursor-not-allowed"
-        >
-          Hire {agentName}
-        </button>
-        <p className="mt-3 text-xs text-bnb-muted">Connect your wallet (top right) to hire this agent.</p>
+      <div className="rounded-md border border-bnb-line px-4 py-3 text-sm text-bnb-muted">
+        Connect your wallet (top right) to hire {agentName}.
       </div>
     );
   }
