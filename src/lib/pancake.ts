@@ -23,8 +23,13 @@ export const routerAbi = [
  * (10-grid-trading-agent.mjs / 11-grid-trading-agent-v2.mjs), since a hire
  * needs a deterministic, always-executable action rather than depending on
  * whether the price happens to have crossed a threshold at request time.
+ *
+ * `beneficiary`: the buyer-chosen wallet from the hire request, logged for
+ * the audit trail. Not yet routed into the trade itself -- all 4 agents
+ * still share one wallet and one grid position today (see README).
  */
-export async function fireGridSwap(amountBnb = parseEther("0.01")): Promise<Hex> {
+export async function fireGridSwap(beneficiary: Address, amountBnb = parseEther("0.01")): Promise<Hex> {
+  console.log(`[fireGridSwap] hired on behalf of ${beneficiary}`);
   const wallet = { address: process.env.WALLET_ADDRESS as Address };
   const adminSigner = signerFromPrivateKey(process.env.ADMIN_PRIVATE_KEY as Hex);
   const client = createClient({ chains: [BNB_TESTNET] });

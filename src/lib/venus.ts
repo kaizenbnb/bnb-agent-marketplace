@@ -52,8 +52,14 @@ export async function readVenusApy(): Promise<number> {
  * for redeem()/repayBorrow(); mint()/approve() work fine either way, and this
  * server route already holds the admin key, so there's no session to scope.
  * Returns the tx hash so the API route can report it as the "work" receipt.
+ *
+ * `beneficiary` is the buyer-chosen wallet from the hire request -- logged
+ * for the audit trail. Not yet routed into the position itself: all 4
+ * agents still share one wallet and one Venus position today (see README),
+ * so there's no per-buyer position to credit it to.
  */
-export async function supplyToVenus(amountUsdt = 1_000_000n): Promise<Hex> {
+export async function supplyToVenus(beneficiary: Address, amountUsdt = 1_000_000n): Promise<Hex> {
+  console.log(`[supplyToVenus] hired on behalf of ${beneficiary}`);
   const wallet = { address: process.env.WALLET_ADDRESS as Address };
   const adminSigner = signerFromPrivateKey(process.env.ADMIN_PRIVATE_KEY as Hex);
   const client = createClient({ chains: [BNB_TESTNET] });
@@ -84,8 +90,11 @@ export async function supplyToVenus(amountUsdt = 1_000_000n): Promise<Hex> {
  * permission, see AGENT_LOG.md); mint() works fine via session, unlike the
  * yield action this one deliberately goes through a freshly-granted scoped
  * session rather than the admin path, to demonstrate the working case.
+ *
+ * `beneficiary`: see supplyToVenus's docstring -- same caveat applies here.
  */
-export async function addCollateralToVenus(amountBnb = parseEther("0.01")): Promise<Hex> {
+export async function addCollateralToVenus(beneficiary: Address, amountBnb = parseEther("0.01")): Promise<Hex> {
+  console.log(`[addCollateralToVenus] hired on behalf of ${beneficiary}`);
   const wallet = { address: process.env.WALLET_ADDRESS as Address };
   const adminSigner = signerFromPrivateKey(process.env.ADMIN_PRIVATE_KEY as Hex);
   const client = createClient({ chains: [BNB_TESTNET] });

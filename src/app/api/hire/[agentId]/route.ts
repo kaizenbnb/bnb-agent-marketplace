@@ -9,19 +9,21 @@ import { isConfigComplete } from "@/lib/config";
 
 /**
  * The x402 "merchant" for hiring an agent. Real three-step handshake:
- *   1. POST without X-PAYMENT, body { amount, beneficiary } -> 402 with
- *      payment requirements (accepts[]), echoing the requested amount.
+ *   1. POST without X-PAYMENT, body { beneficiary } -> 402 with payment
+ *      requirements (accepts[]), quoting the server's own fixed price.
  *   2. POST with X-PAYMENT, same body:
  *      a. VALIDATE: read-only checks -- signature recovery, nonce unused,
  *         balance/allowance sufficient, deadline OK, signed amount matches
  *         what was quoted
- *      b. WORK: execute the agent's billable action
+ *      b. WORK: execute the agent's billable action, on behalf of the
+ *         buyer-chosen `beneficiary` wallet (passed through for the audit
+ *         trail; see the doWork implementations for today's limits)
  *      c. CAPTURE: only if work succeeds, settle the Permit2 payment to
- *         `beneficiary` (transferDetails.to is NOT part of what the user
- *         signs -- Permit2 only signs "spender may pull up to X", the
- *         relayer picks the destination at settlement time, same trust
- *         boundary this server already held when the recipient was a
- *         hardcoded constant)
+ *         `agent.wallet` -- the same address quoted as `payTo` in the 402
+ *         response, NEVER the buyer-supplied beneficiary (transferDetails.to
+ *         is NOT part of what the user signs -- Permit2 only signs "spender
+ *         may pull up to X", so letting a client-controlled value pick the
+ *         destination would let a buyer redirect the payment to themselves)
  *      Returns BOTH transaction hashes on success. If work fails, payment is never settled.
  *
  * The signature itself is produced client-side by the user's own connected
@@ -32,7 +34,7 @@ import { isConfigComplete } from "@/lib/config";
  * (see agents/AGENT_LOG.md for the underlying agent lessons).
  */
 
-const WORK_ACTIONS: Record<string, () => Promise<string>> = {
+const WORK_ACTIONS: Record<string, (beneficiary: Address) => Promise<string>> = {
   "yield-venus-comparator": supplyToVenus,
   "health-factor-venus": addCollateralToVenus,
   "grid-pancakeswap-v2": fireGridSwap,
@@ -168,10 +170,10 @@ export async function POST(
     );
   }
 
-  // Step 2: WORK — execute the agent's billable action
+  // Step 2: WORK — execute the agent's billable action, on behalf of beneficiary
   let workTxHash: string;
   try {
-    workTxHash = await doWork();
+    workTxHash = await doWork(beneficiary as Address);
   } catch (err) {
     const errMsg = String(err);
     console.error(`[hire] Work action failed for ${agentId}:`, errMsg);
@@ -192,10 +194,12 @@ export async function POST(
   }
 
   // Step 3: CAPTURE — only if work succeeded, settle the payment to the
-  // buyer-chosen beneficiary wallet (validated as a well-formed address above)
+  // agent's OWN wallet (the same address quoted as `payTo` in the 402
+  // response) -- never the buyer-supplied beneficiary, which would let a
+  // buyer redirect the payment to an address of their own choosing.
   let paymentTxHash: string;
   try {
-    paymentTxHash = await settlePermit2Payment(payload, beneficiary as Address);
+    paymentTxHash = await settlePermit2Payment(payload, agent.wallet as Address);
   } catch (err) {
     const errMsg = String(err);
     console.error("[hire] Payment settlement failed after work succeeded:", errMsg);

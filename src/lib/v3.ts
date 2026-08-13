@@ -50,8 +50,13 @@ const publicClient = createPublicClient({ chain: bscTestnetRO, transport: http()
  * capital via NonfungiblePositionManager.increaseLiquidity(). Reuses the same
  * V2-swap-for-USDT + wrap-for-WBNB pattern the original agent used to fund
  * its mint, since neither token sits idle in the wallet by default.
+ *
+ * `beneficiary`: the buyer-chosen wallet from the hire request, logged for
+ * the audit trail. Not yet routed into the position itself -- all 4 agents
+ * still share one wallet and one V3 position today (see README).
  */
-export async function growPositionB(swapAmountBnb = parseEther("0.01"), wrapAmountBnb = parseEther("0.01")): Promise<Hex> {
+export async function growPositionB(beneficiary: Address, swapAmountBnb = parseEther("0.01"), wrapAmountBnb = parseEther("0.01")): Promise<Hex> {
+  console.log(`[growPositionB] hired on behalf of ${beneficiary}`);
   const wallet = { address: process.env.WALLET_ADDRESS as Address };
   const adminSigner = signerFromPrivateKey(process.env.ADMIN_PRIVATE_KEY as Hex);
   const client = createClient({ chains: [BNB_TESTNET] });
