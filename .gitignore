@@ -43,3 +43,6 @@ next-env.d.ts
 .vercel
 .env*
 !.env.example
+
+# Claude Code operational context (internal, not project docs)
+.claude/CLAUDE.md
