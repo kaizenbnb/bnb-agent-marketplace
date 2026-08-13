@@ -11,7 +11,6 @@ type Status = "idle" | "requesting" | "signing" | "settling" | "done" | "error" 
 
 const PERMIT2_ADDRESS: Address = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
 const BSC_TESTNET_CHAIN_ID = 97;
-const DEFAULT_HIRE_AMOUNT = "1.00";
 
 function randomNonce(): bigint {
   const bytes = new Uint8Array(32);
@@ -45,19 +44,19 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
     return () => clearInterval(id);
   }, [busy]);
 
-  async function handleConfirm({ amount, beneficiary }: HireModalSubmit) {
+  async function handleConfirm({ beneficiary }: HireModalSubmit) {
     setModalOpen(false);
     setError(null);
     setElapsed(0);
     try {
       // Step 1: real fetch, no payment yet -> expect 402 with requirements.
-      // amount + beneficiary go in the body so the server can quote and
-      // later settle against the buyer's own choices.
+      // The price is never sent by the client -- the server quotes its own
+      // fixed HIRE_PRICE_USDT regardless of what a request body claims.
       setStatus("requesting");
       const res1 = await fetch(`/api/hire/${agentId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, beneficiary }),
+        body: JSON.stringify({ beneficiary }),
       });
 
       if (res1.status === 501) {
@@ -121,7 +120,7 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
       const res2 = await fetch(`/api/hire/${agentId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-PAYMENT": xPaymentHeader },
-        body: JSON.stringify({ amount, beneficiary }),
+        body: JSON.stringify({ beneficiary }),
       });
       if (!res2.ok) {
         const errBody = await res2.json().catch(() => ({}));
@@ -171,7 +170,6 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
       {modalOpen && (
         <HireModal
           agentName={agentName}
-          defaultAmount={DEFAULT_HIRE_AMOUNT}
           connectedAddress={address ?? ""}
           onConfirm={handleConfirm}
           onClose={() => setModalOpen(false)}

@@ -2,25 +2,25 @@
 
 import { useState } from "react";
 
-export type HireModalSubmit = { amount: string; beneficiary: string };
+export type HireModalSubmit = { beneficiary: string };
+
+// Must match HIRE_PRICE_USDT in src/lib/x402.ts -- display only, the server
+// never trusts a client-supplied price.
+const DISPLAY_PRICE = "1.00 USDT";
 
 export default function HireModal({
   agentName,
-  defaultAmount,
   connectedAddress,
   onConfirm,
   onClose,
 }: {
   agentName: string;
-  defaultAmount: string;
   connectedAddress: string;
   onConfirm: (values: HireModalSubmit) => void;
   onClose: () => void;
 }) {
-  const [amount, setAmount] = useState(defaultAmount);
   const [beneficiary, setBeneficiary] = useState(connectedAddress);
 
-  const amountValid = Number(amount) > 0;
   const beneficiaryValid = /^0x[a-fA-F0-9]{40}$/.test(beneficiary);
 
   return (
@@ -28,17 +28,10 @@ export default function HireModal({
       <div className="w-full max-w-sm rounded-lg border border-bnb-line bg-bnb-card p-6">
         <h2 className="text-lg font-bold text-bnb-text">Hire {agentName}</h2>
 
-        <label className="mt-4 block text-xs font-medium text-bnb-muted">
-          Amount (USDT)
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="mt-1 w-full rounded-md border border-bnb-line bg-bnb-carbon px-3 py-2 text-sm text-bnb-text focus:border-bnb-gold focus:outline-none"
-          />
-        </label>
+        <div className="mt-4">
+          <p className="text-xs font-medium text-bnb-muted">Price</p>
+          <p className="mt-1 text-sm text-bnb-text">{DISPLAY_PRICE} <span className="text-bnb-muted">(fixed)</span></p>
+        </div>
 
         <label className="mt-4 block text-xs font-medium text-bnb-muted">
           Beneficiary wallet
@@ -64,8 +57,8 @@ export default function HireModal({
           </button>
           <button
             type="button"
-            disabled={!amountValid || !beneficiaryValid}
-            onClick={() => onConfirm({ amount, beneficiary })}
+            disabled={!beneficiaryValid}
+            onClick={() => onConfirm({ beneficiary })}
             className="flex-1 rounded-md bg-bnb-gold px-4 py-2 text-sm font-semibold text-bnb-carbon hover:bg-bnb-gold/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Confirm &amp; Pay

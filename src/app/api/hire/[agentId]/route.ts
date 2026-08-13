@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAddress, parseUnits, type Address } from "viem";
+import { isAddress, type Address } from "viem";
 import { getAgent } from "@/lib/agents";
-import { build402Body, decodeXPayment, validatePermit2Authorization, settlePermit2Payment } from "@/lib/x402";
+import { build402Body, decodeXPayment, validatePermit2Authorization, settlePermit2Payment, HIRE_PRICE_USDT } from "@/lib/x402";
 import { supplyToVenus, addCollateralToVenus } from "@/lib/venus";
 import { fireGridSwap } from "@/lib/pancake";
 import { growPositionB } from "@/lib/v3";
@@ -96,17 +96,13 @@ export async function POST(
     );
   }
 
-  // Body carries the buyer's chosen amount and beneficiary wallet -- both
-  // set in the "Confirm & Pay" modal before any request is sent.
+  // Body carries the buyer's chosen beneficiary wallet. The price is NOT
+  // client-supplied -- HIRE_PRICE_USDT is the only amount the server will
+  // ever quote or accept, regardless of what a request body claims. (It
+  // used to accept a client `amount` field for both quoting and validation,
+  // which meant a buyer could just declare their own price.)
   const requestBody = await req.json().catch(() => ({}));
-
-  let amount: bigint;
-  try {
-    amount = parseUnits(String(requestBody.amount ?? "1.00"), 6); // USDT: 6 decimals
-    if (amount <= 0n) throw new Error("Amount must be greater than 0");
-  } catch {
-    return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
-  }
+  const amount = HIRE_PRICE_USDT;
 
   const beneficiary = requestBody.beneficiary;
   if (!beneficiary || !isAddress(beneficiary)) {
@@ -119,8 +115,7 @@ export async function POST(
     const body = build402Body(
       agent.wallet as `0x${string}`,
       req.nextUrl.toString(),
-      `Hire ${agent.name}`,
-      amount
+      `Hire ${agent.name}`
     );
     return NextResponse.json(body, { status: 402 });
   }

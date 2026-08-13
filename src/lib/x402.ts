@@ -6,7 +6,7 @@ import { PERMIT2_TYPES, permit2Domain } from "./permit2-types";
 
 export { PERMIT2_ADDRESS };
 
-const HIRE_PRICE_USDT = 1_000_000n; // 1.00 USDT, 6 decimals -- default suggested amount, user-editable in the modal
+const HIRE_PRICE_USDT = 1_000_000n; // 1.00 USDT, 6 decimals -- the ONLY price the server will ever quote or accept
 const BSC_TESTNET_CHAIN_ID = 97;
 
 const bscTestnetRO = {
@@ -26,8 +26,7 @@ const bscTestnetRO = {
 export function build402Body(
   agentWallet: Address,
   resourceUrl: string,
-  description: string,
-  amount: bigint = HIRE_PRICE_USDT
+  description: string
 ) {
   return {
     x402Version: 1,
@@ -37,7 +36,7 @@ export function build402Body(
         scheme: "permit2",
         network: "bsc-testnet",
         asset: USDT_TESTNET,
-        maxAmountRequired: amount.toString(),
+        maxAmountRequired: HIRE_PRICE_USDT.toString(),
         payTo: agentWallet,
         maxTimeoutSeconds: 3600,
         extra: {
