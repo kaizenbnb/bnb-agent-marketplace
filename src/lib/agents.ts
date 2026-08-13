@@ -159,91 +159,6 @@ export const AGENTS: Agent[] = [
       { label: "Reposition: mint position B", hash: "0x5ae725b19bccdf05f256051493170eea5c00f20f0386f1f4f3187dd1fecebd24" },
     ],
   },
-  {
-    id: "yield-venus-comparator-conservative",
-    name: "Venus Yield Conservator",
-    category: "yield",
-    protocol: "Venus Protocol (Core Pool)",
-    chain: "BNB Smart Chain Testnet",
-    wallet: WALLET,
-    summary: "Conservative yield strategy: supplies smaller amounts to test sustainable APR with minimal capital exposure.",
-    description:
-      "Same protocol as the Venus Yield Comparator, but with a different parameter: smaller supply amount (0.5 USDT vs. 1.0). Tests whether smaller, more frequent positions accumulate yield comparably to larger one-time supplies.",
-    status: "live-testnet",
-    metrics: [
-      { label: "Supply amount", value: "0.5 USDT (conservative)" },
-      { label: "Protocol", value: "Venus Core Pool: vUSDT" },
-      { label: "Strategy", value: "Small, frequent deposits" },
-    ],
-    transactions: [
-      { label: "Supply to Venus (0.5 USDT)", hash: "0x3cb2f287b53d26077d4169638910ecb7d4b42319899d2e8f9d823ccd3f527672" },
-    ],
-  },
-  {
-    id: "health-factor-venus-aggressive",
-    name: "Venus Health Factor Sentinel",
-    category: "health-factor",
-    protocol: "Venus Protocol (Comptroller + vBNB + vUSDT)",
-    chain: "BNB Smart Chain Testnet",
-    wallet: WALLET,
-    summary: "Aggressive health-factor protection: monitors at higher utilization, triggers protective repay earlier to maximize yield while staying safe.",
-    description:
-      "Same mechanics as the Venus Health Factor Guardian, but with a different threshold: 1.5 (aggressive, high utilization) instead of 1.15. Demonstrates how different risk profiles require different thresholds. Higher utilization = higher yield but tighter safety margin.",
-    status: "live-testnet",
-    metrics: [
-      { label: "Collateral", value: "0.05 tBNB" },
-      { label: "Debt (borrow)", value: "43.2 real USDT" },
-      { label: "Protection threshold", value: "1.5 (aggressive)" },
-    ],
-    transactions: [
-      { label: "Borrow (90% capacity)", hash: "0x3b4317c9eba9d4734785f61051920d766f82593694ace2e6be40badc28b73775" },
-      { label: "Protective repay (aggressive)", hash: "0x557c3171ea77fba6c53ccaafbd73719589c5d147c9977b158201c222363392c1" },
-    ],
-    healthFactorGauge: { before: 0.9722, after: 1.5, threshold: 1.5 },
-  },
-  {
-    id: "grid-pancakeswap-v2-wide",
-    name: "PancakeSwap Grid Sweeper",
-    category: "grid-trading",
-    protocol: "PancakeSwap V2 (Router)",
-    chain: "BNB Smart Chain Testnet",
-    wallet: WALLET,
-    summary: "Wide-grid variant: larger order size, captures bigger price swings instead of smaller ticks.",
-    description:
-      "Same WBNB/BUSD pair and 0.4% grid step as the Grid Bot, but with a larger order size (0.02 BNB vs. 0.05 BNB). Demonstrates how order sizing affects sensitivity: larger orders catch bigger moves, smaller orders catch tighter oscillations. Trade-off between frequency and capital exposure.",
-    status: "live-testnet",
-    metrics: [
-      { label: "Pair", value: "WBNB / BUSD (official testnet)" },
-      { label: "Grid", value: "5 levels, 0.4% step" },
-      { label: "Order size", value: "0.02 BNB (larger)" },
-      { label: "Capital efficiency", value: "~25% of capital per order" },
-    ],
-    transactions: [
-      { label: "Kick-off: initial sell (BNB → BUSD)", hash: "0xa5c689a0a3684935cf6d1446eaad9a3903c8471f152be9cd1b42debd58706e91" },
-    ],
-  },
-  {
-    id: "rebalancing-pancakeswap-v3-harvest",
-    name: "PancakeSwap Fee Harvester",
-    category: "rebalancing",
-    protocol: "PancakeSwap V3 (NonfungiblePositionManager)",
-    chain: "BNB Smart Chain Testnet",
-    wallet: WALLET,
-    summary: "Alternative rebalancing: collects accumulated fees instead of growing position, realizing profits.",
-    description:
-      "Same WBNB/USDT V3 position as the Range Manager, but with a different action: `collect` fees instead of `increaseLiquidity`. Rebalancing isn't just repositioning capital—it also means harvesting accrued fees to lock in profits. This agent demonstrates fee collection as part of a rebalancing strategy.",
-    status: "live-testnet",
-    metrics: [
-      { label: "Pool", value: "WBNB / USDT-official, 0.25% fee" },
-      { label: "Position", value: "tokenId 36782, range [-24700, -23650]" },
-      { label: "Action", value: "Collect accumulated fees" },
-      { label: "Strategy", value: "Profit realization" },
-    ],
-    transactions: [
-      { label: "Mint position B (active)", hash: "0x5ae725b19bccdf05f256051493170eea5c00f20f0386f1f4f3187dd1fecebd24" },
-      { label: "Collect fees (harvest)", hash: "0x5ae725b19bccdf05f256051493170eea5c00f20f0386f1f4f3187dd1fecebd24" },
-    ],
-  },
 ];
 
 export function getCategory(slug: string): Category | undefined {
@@ -277,7 +192,9 @@ export function getAgentCount(slug: CategorySlug): number {
 export type HomeStat = { label: string; value: string };
 
 export function getHomeStats(): HomeStat[] {
-  const onchainTxCount = AGENTS.reduce((sum, a) => sum + a.transactions.length, 0);
+  // Count unique tx hashes, not array length: an agent that reuses another's
+  // hash (e.g. as a shared-strategy variant) must not inflate this number.
+  const onchainTxCount = new Set(AGENTS.flatMap((a) => a.transactions.map((t) => t.hash))).size;
   const protocolFamilies = new Set(AGENTS.map((a) => a.protocol.match(/^\w+/)?.[0] ?? a.protocol));
 
   return [

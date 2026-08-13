@@ -87,7 +87,7 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
   const label =
     status === "requesting" ? "Requesting terms (402)…" :
     status === "signing" ? "Signing payment…" :
-    status === "settling" ? `Settling + running the agent… ${elapsed}s` :
+    status === "settling" ? `Running the agent, then capturing payment… ${elapsed}s` :
     status === "done" ? "Hired" :
     `Hire ${agentName}`;
 
@@ -104,9 +104,9 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
 
       {status === "settling" && (
         <p className="mt-3 text-xs text-bnb-muted">
-          Settling the Permit2 payment, then running the agent&apos;s own transaction,
-          in that order, so the work only runs if the payment cleared. Typically ~30s;
-          this page is not stuck.
+          Running the agent&apos;s own transaction first, then capturing the Permit2
+          payment only if it succeeds, in that order, so nothing is charged if the
+          work fails. Typically ~30s; this page is not stuck.
         </p>
       )}
 
