@@ -31,13 +31,17 @@ All 4 currently share one agentic wallet (`0x5bc1C0779fC435f5C8Dd2692E667e51716e
 
 ## How hiring works: x402
 
-Hiring is a real three-step x402 handshake against `POST /api/hire/[agentId]`, not a mocked paywall:
+Connect a wallet (MetaMask, Binance Wallet, Trust Wallet, or WalletConnect — via RainbowKit), pick an amount and a beneficiary wallet, and hire. The Permit2 authorization is signed **by the buyer's own connected wallet**, client-side — the server never holds or needs the payer's private key, only the resulting signature.
 
-1. **Request terms.** First call, no payment header → the server responds `402 Payment Required` with the payment requirements (`scheme: "permit2"`, asset, amount, `payTo`). Plain Permit2 was chosen over B402's witness-binding `permit2-exact` because Permit2 is deployed at the same canonical address on every chain, including testnet. No extra infrastructure to stand up.
-2. **Authorize and hire.** The client signs a Permit2 `PermitTransferFrom` authorization and re-sends the same request with an `X-PAYMENT` header. The server:
-   - **Validates** the authorization without writing to the blockchain (checks nonce is unused, deadline hasn't passed, owner has sufficient balance and allowance).
+Hiring is a real four-step x402 handshake against `POST /api/hire/[agentId]`, not a mocked paywall:
+
+1. **Choose terms.** A two-field modal ("Confirm & Pay") collects the amount (USDT) and the beneficiary wallet, pre-filled with the connected address but editable.
+2. **Request terms.** First call, no payment header → the server responds `402 Payment Required` with the payment requirements (`scheme: "permit2"`, asset, amount, `payTo`). Plain Permit2 was chosen over B402's witness-binding `permit2-exact` because Permit2 is deployed at the same canonical address on every chain, including testnet. No extra infrastructure to stand up.
+3. **Sign and hire.** The connected wallet signs a Permit2 `PermitTransferFrom` authorization via wagmi's `useSignTypedData` (domain/types verified against Uniswap's `permit2` source), and the client re-sends the same request with an `X-PAYMENT` header plus the chosen amount and beneficiary. The server:
+   - **Validates** the authorization without writing to the blockchain: recovers the signer from the signature and checks it matches the claimed payer, confirms the signed spender is our relayer, confirms the signed amount matches what was quoted, checks the nonce is unused, the deadline hasn't passed, and the payer has sufficient balance and allowance.
    - **Executes the agent's work** (e.g. supply to Venus, fire a grid swap, grow a V3 position).
-   - **Only if work succeeds**, relays `Permit2.permitTransferFrom` onchain to capture the payment.
+   - **Only if work succeeds**, relays `Permit2.permitTransferFrom` onchain to capture the payment to the chosen beneficiary. (`transferDetails.to` isn't part of what the user signs — Permit2 only signs "spender may pull up to X"; the relayer picks the destination at settlement time, same trust boundary as when the recipient was a hardcoded constant.)
+4. **Show proof.** The server returns both transaction hashes; the client displays them as links to BscScan.
 
 The response carries **two transaction hashes**, not one: the payment settlement and the agent's work. A hire that only charges isn't a hire. **If the agent's work fails, the payment is never captured—no charge occurs.**
 
@@ -54,27 +58,33 @@ The payment is **conditional on work success**, not cryptographically atomic. Th
 ## Architecture
 
 ```
-┌─────────────┐     task chip / search      ┌──────────────────┐
-│   Browser    │ ───────────────────────────▶│  Next.js App     │
-│  (KaizenScope)│◀─────────────────────────── │  Router (RSC)     │
-└─────────────┘     agent card + detail page  └──────┬───────────┘
-                                                       │
-                                       POST /api/hire/[agentId]
-                                                       │
-                                    ┌──────────────────▼──────────────────┐
-                                    │  x402 merchant (route.ts)            │
-                                    │  1. no payment  → 402 + requirements │
-                                    │  2. X-PAYMENT    → settle + execute  │
-                                    └──────┬─────────────────┬────────────┘
-                                           │                 │
-                              Permit2.permitTransferFrom   agent work action
-                              (payment settlement)          (supplyToVenus,
-                                           │                 fireGridSwap,
-                                           ▼                 growPositionB, …)
-                                ┌────────────────────────────────────┐
-                                │   BNB Smart Chain Testnet (viem)     │
-                                │   Venus · PancakeSwap V2 · V3        │
-                                └────────────────────────────────────┘
+┌─────────────┐  connect (RainbowKit)   ┌──────────────────┐
+│   Browser    │ ───────────────────────▶│  wagmi / viem     │
+│  (KaizenScope)│◀─────────────────────── │  connected wallet │
+└──────┬───────┘   Permit2 signTypedData └──────────────────┘
+       │            (client-side, never a private key)
+       │  POST /api/hire/[agentId]
+       │  { amount, beneficiary [, X-PAYMENT] }
+       ▼
+┌──────────────────────────────────────┐
+│  x402 merchant (route.ts)            │
+│  1. no payment  → 402 + requirements │
+│  2. X-PAYMENT    → validate (recover │
+│     signer, check spender/amount/    │
+│     nonce/deadline/balance/allowance)│
+│     → work → capture                 │
+└──────┬─────────────────┬─────────────┘
+       │                 │
+Permit2.permitTransferFrom   agent work action
+(payment settlement,          (supplyToVenus,
+ to buyer's chosen             fireGridSwap,
+ beneficiary)                  growPositionB, …)
+       │                 │
+       ▼                 ▼
+┌────────────────────────────────────┐
+│   BNB Smart Chain Testnet (viem)     │
+│   Venus · PancakeSwap V2 · V3        │
+└────────────────────────────────────┘
 ```
 
 Agent data (`src/lib/agents.ts`) is static: why is covered under [The solution](#the-solution) above, not repeated here.
@@ -89,8 +99,9 @@ Agent data (`src/lib/agents.ts`) is static: why is covered under [The solution](
 
 ## Stack
 
-- [Next.js 16](https://nextjs.org) (App Router, React 19, Server Actions) + TypeScript
+- [Next.js 16](https://nextjs.org) (App Router, React 19) + TypeScript
 - [Tailwind CSS 4](https://tailwindcss.com)
+- [wagmi](https://wagmi.sh) + [RainbowKit](https://www.rainbowkit.com) for wallet connection and client-side Permit2 signing (wagmi pinned to the v2 branch — RainbowKit 2.x's peer dependency, not v3, which is what `wagmi@latest` resolves to)
 - [viem](https://viem.sh) for all onchain reads/writes against BSC Testnet
 - [`@altananetwork/sdk`](https://www.npmjs.com/package/@altananetwork/sdk) for scoped-session agent execution (Venus supply/borrow path)
 - pnpm
@@ -106,7 +117,7 @@ Create `.env.local` with:
 ```
 WALLET_ADDRESS=<agentic wallet address, 0x5bc1C0...>
 ADMIN_PRIVATE_KEY=<admin key for the agent wallet, testnet only, never commit>
-X402_SESSION_SIGNER_KEY=<key used to sign the demo's Permit2 payment>
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=<free project ID from https://cloud.reown.com>
 ```
 
 ```bash
@@ -115,7 +126,7 @@ pnpm dev
 
 The app runs on [http://localhost:3100](http://localhost:3100).
 
-No wallet extension is wired up client-side. The demo signs the x402 Permit2 payment server-side via a Server Action, since there's no browser wallet connection in this build. See `src/app/actions/hire.ts`.
+Wallet connection is real: MetaMask, Binance Wallet, and Trust Wallet work as injected connectors with no extra setup; the WalletConnect connector specifically needs `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (get one free at [cloud.reown.com](https://cloud.reown.com)) to complete a session — without it, RainbowKit falls back to a placeholder and shows a harmless dev-mode warning badge.
 
 ## Production deployment
 

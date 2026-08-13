@@ -1,12 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signHirePayment } from "@/app/actions/hire";
+import { useAccount, useSignTypedData } from "wagmi";
+import type { Address } from "viem";
 import { EXPLORER_TX_BASE } from "@/lib/agents";
+import { PERMIT2_TYPES, permit2Domain } from "@/lib/permit2-types";
+import HireModal, { type HireModalSubmit } from "./HireModal";
 
 type Status = "idle" | "requesting" | "signing" | "settling" | "done" | "error" | "unavailable";
 
+const PERMIT2_ADDRESS: Address = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const BSC_TESTNET_CHAIN_ID = 97;
+const DEFAULT_HIRE_AMOUNT = "1.00";
+
+function randomNonce(): bigint {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return bytes.reduce((acc, b) => (acc << 8n) | BigInt(b), 0n);
+}
+
 export default function HireButton({ agentId, agentName }: { agentId: string; agentName: string }) {
+  const { address, isConnected } = useAccount();
+  const { signTypedDataAsync } = useSignTypedData();
+
+  const [modalOpen, setModalOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ paymentTx: string; workTx: string } | null>(null);
@@ -28,44 +45,83 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
     return () => clearInterval(id);
   }, [busy]);
 
-  async function handleHire() {
+  async function handleConfirm({ amount, beneficiary }: HireModalSubmit) {
+    setModalOpen(false);
     setError(null);
     setElapsed(0);
     try {
       // Step 1: real fetch, no payment yet -> expect 402 with requirements.
+      // amount + beneficiary go in the body so the server can quote and
+      // later settle against the buyer's own choices.
       setStatus("requesting");
-      const res1 = await fetch(`/api/hire/${agentId}`, { method: "POST" });
+      const res1 = await fetch(`/api/hire/${agentId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, beneficiary }),
+      });
 
       if (res1.status === 501) {
         setStatus("unavailable");
         return;
       }
       if (res1.status === 429) {
-        const body = await res1.json().catch(() => ({}));
-        throw new Error(body.error || "Too many requests. Try again later.");
+        const errBody = await res1.json().catch(() => ({}));
+        throw new Error(errBody.error || "Too many requests. Try again later.");
       }
       if (res1.status !== 402) {
-        throw new Error(`Expected 402, got ${res1.status}`);
+        const errBody = await res1.json().catch(() => ({}));
+        throw new Error(errBody.error || `Expected 402, got ${res1.status}`);
       }
       const body = await res1.json();
       const requirement = body.accepts?.[0];
       if (!requirement) throw new Error("402 response had no payable requirement");
 
-      // Step 2: sign the requirement. No wallet is connected in-browser (no
-      // MetaMask/WalletConnect wired up), so this can't actually happen on the
-      // client -- documented fallback, server-side signing via a Server Action.
+      // Step 2: sign the Permit2 authorization with the CONNECTED wallet --
+      // the server never sees a private key, only the resulting signature.
       setStatus("signing");
-      const signResult = await signHirePayment(requirement);
-      if ("error" in signResult) {
-        throw new Error(signResult.error);
-      }
-      const xPaymentHeader = signResult.header;
+      if (!address) throw new Error("Wallet disconnected before signing");
+
+      const nonce = randomNonce();
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200); // 20 min
+
+      const signature = await signTypedDataAsync({
+        domain: permit2Domain(BSC_TESTNET_CHAIN_ID, PERMIT2_ADDRESS),
+        types: PERMIT2_TYPES,
+        primaryType: "PermitTransferFrom",
+        message: {
+          permitted: {
+            token: requirement.asset as Address,
+            amount: BigInt(requirement.maxAmountRequired),
+          },
+          spender: requirement.extra.spenderAddress as Address,
+          nonce,
+          deadline,
+        },
+      });
+
+      const xPaymentPayload = {
+        x402Version: 1,
+        scheme: "permit2",
+        network: "bsc-testnet",
+        payload: {
+          signature,
+          from: address,
+          permit: {
+            permitted: { token: requirement.asset, amount: requirement.maxAmountRequired },
+            spender: requirement.extra.spenderAddress,
+            nonce: nonce.toString(),
+            deadline: deadline.toString(),
+          },
+        },
+      };
+      const xPaymentHeader = btoa(JSON.stringify(xPaymentPayload));
 
       // Step 3: real second fetch, same endpoint, now WITH the payment header.
       setStatus("settling");
       const res2 = await fetch(`/api/hire/${agentId}`, {
         method: "POST",
-        headers: { "X-PAYMENT": xPaymentHeader },
+        headers: { "Content-Type": "application/json", "X-PAYMENT": xPaymentHeader },
+        body: JSON.stringify({ amount, beneficiary }),
       });
       if (!res2.ok) {
         const errBody = await res2.json().catch(() => ({}));
@@ -91,16 +147,41 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
     status === "done" ? "Hired" :
     `Hire ${agentName}`;
 
+  if (!isConnected) {
+    return (
+      <div>
+        <button
+          type="button"
+          disabled
+          className="rounded-md bg-bnb-gold px-6 py-3 text-sm font-semibold text-bnb-carbon opacity-60 cursor-not-allowed"
+        >
+          Hire {agentName}
+        </button>
+        <p className="mt-3 text-xs text-bnb-muted">Connect your wallet (top right) to hire this agent.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <button
         type="button"
-        onClick={handleHire}
+        onClick={() => setModalOpen(true)}
         disabled={busy || status === "done"}
         className="rounded-md bg-bnb-gold px-6 py-3 text-sm font-semibold text-bnb-carbon hover:bg-bnb-gold/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {label}
       </button>
+
+      {modalOpen && (
+        <HireModal
+          agentName={agentName}
+          defaultAmount={DEFAULT_HIRE_AMOUNT}
+          connectedAddress={address ?? ""}
+          onConfirm={handleConfirm}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
 
       {status === "settling" && (
         <p className="mt-3 text-xs text-bnb-muted">
@@ -112,7 +193,7 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
 
       {status === "unavailable" && (
         <p className="mt-3 text-xs text-bnb-muted">
-          The x402 hire flow isn't wired up for this agent yet, being generalized one
+          The x402 hire flow isn&apos;t wired up for this agent yet, being generalized one
           agent at a time.
         </p>
       )}

@@ -1,11 +1,13 @@
-import { createWalletClient, createPublicClient, http, type Address, type Hex } from "viem";
+import { createWalletClient, createPublicClient, http, recoverTypedDataAddress, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { PERMIT2_ADDRESS } from "@altananetwork/sdk";
 import { USDT_TESTNET } from "./venus";
+import { PERMIT2_TYPES, permit2Domain } from "./permit2-types";
 
 export { PERMIT2_ADDRESS };
 
-const HIRE_PRICE_USDT = 1_000_000n; // 1.00 USDT, 6 decimals (real testnet decimals: verified, see AGENT_LOG.md)
+const HIRE_PRICE_USDT = 1_000_000n; // 1.00 USDT, 6 decimals -- default suggested amount, user-editable in the modal
+const BSC_TESTNET_CHAIN_ID = 97;
 
 const bscTestnetRO = {
   id: 97,
@@ -21,7 +23,12 @@ const bscTestnetRO = {
  * Plain Permit2 is deployed at the same canonical address on every chain
  * including testnet, so this settles with zero extra infrastructure.
  */
-export function build402Body(agentWallet: Address, resourceUrl: string, description: string) {
+export function build402Body(
+  agentWallet: Address,
+  resourceUrl: string,
+  description: string,
+  amount: bigint = HIRE_PRICE_USDT
+) {
   return {
     x402Version: 1,
     resource: { url: resourceUrl, description },
@@ -30,7 +37,7 @@ export function build402Body(agentWallet: Address, resourceUrl: string, descript
         scheme: "permit2",
         network: "bsc-testnet",
         asset: USDT_TESTNET,
-        maxAmountRequired: HIRE_PRICE_USDT.toString(),
+        maxAmountRequired: amount.toString(),
         payTo: agentWallet,
         maxTimeoutSeconds: 3600,
         extra: {
@@ -105,15 +112,57 @@ export function decodeXPayment(header: string): XPaymentPayload {
  */
 /**
  * Validate a decoded X-PAYMENT permit2 authorization WITHOUT writing to the blockchain.
- * Reads: nonceBitmap (to confirm nonce is unused), balanceOf, allowance.
+ * Reads: signature recovery, nonceBitmap (to confirm nonce is unused), balanceOf, allowance.
  * Returns true if all checks pass; throws on any validation failure.
+ *
+ * `expectedAmount` is what the server itself quoted in the 402 response (from
+ * the request body's `amount` field) -- checked against what's actually
+ * cryptographically committed inside the signed permit, so a client can't
+ * silently sign one number while telling the UI a different one.
  */
-export async function validatePermit2Authorization(payload: XPaymentPayload): Promise<boolean> {
+export async function validatePermit2Authorization(
+  payload: XPaymentPayload,
+  expectedAmount: bigint
+): Promise<boolean> {
   const publicClient = createPublicClient({ chain: bscTestnetRO, transport: http() });
-  const { permit, from } = payload.payload;
+  const { permit, from, signature } = payload.payload;
   const permitAmount = BigInt(permit.permitted.amount);
   const deadline = BigInt(permit.deadline);
   const token = permit.permitted.token as Address;
+
+  // Check 0: signature was actually produced by the claimed owner (`from`).
+  // This is the check that matters most now that a real, potentially
+  // adversarial user wallet signs client-side instead of our own server key.
+  const recovered = await recoverTypedDataAddress({
+    domain: permit2Domain(BSC_TESTNET_CHAIN_ID, PERMIT2_ADDRESS as Address),
+    types: PERMIT2_TYPES,
+    primaryType: "PermitTransferFrom",
+    message: {
+      permitted: { token, amount: permitAmount },
+      spender: permit.spender,
+      nonce: BigInt(permit.nonce),
+      deadline,
+    },
+    signature,
+  });
+  if (recovered.toLowerCase() !== from.toLowerCase()) {
+    throw new Error(`Signature does not match claimed owner: recovered ${recovered}, expected ${from}`);
+  }
+
+  // Check 0b: the signed spender must be OUR relayer -- Permit2 binds
+  // "spender" to whoever calls permitTransferFrom on-chain (msg.sender), so
+  // a signature made out to any other spender will never settle through us.
+  if (permit.spender.toLowerCase() !== (process.env.WALLET_ADDRESS ?? "").toLowerCase()) {
+    throw new Error(`Signed spender ${permit.spender} does not match relayer ${process.env.WALLET_ADDRESS}`);
+  }
+
+  // Check 0c: token and amount must match what the server actually quoted.
+  if (token.toLowerCase() !== USDT_TESTNET.toLowerCase()) {
+    throw new Error(`Unexpected token: ${token}`);
+  }
+  if (permitAmount !== expectedAmount) {
+    throw new Error(`Signed amount ${permitAmount} does not match quoted amount ${expectedAmount}`);
+  }
 
   // Check 1: deadline has not passed
   const now = BigInt(Math.floor(Date.now() / 1000));

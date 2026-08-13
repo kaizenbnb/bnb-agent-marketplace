@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAddress, parseUnits, type Address } from "viem";
 import { getAgent } from "@/lib/agents";
 import { build402Body, decodeXPayment, validatePermit2Authorization, settlePermit2Payment } from "@/lib/x402";
 import { supplyToVenus, addCollateralToVenus } from "@/lib/venus";
@@ -8,12 +9,24 @@ import { isConfigComplete } from "@/lib/config";
 
 /**
  * The x402 "merchant" for hiring an agent. Real three-step handshake:
- *   1. POST without X-PAYMENT -> 402 with payment requirements (accepts[]).
- *   2. POST with X-PAYMENT:
- *      a. VALIDATE: read-only checks (nonce unused, balance/allowance sufficient, deadline OK)
+ *   1. POST without X-PAYMENT, body { amount, beneficiary } -> 402 with
+ *      payment requirements (accepts[]), echoing the requested amount.
+ *   2. POST with X-PAYMENT, same body:
+ *      a. VALIDATE: read-only checks -- signature recovery, nonce unused,
+ *         balance/allowance sufficient, deadline OK, signed amount matches
+ *         what was quoted
  *      b. WORK: execute the agent's billable action
- *      c. CAPTURE: only if work succeeds, settle the Permit2 payment
+ *      c. CAPTURE: only if work succeeds, settle the Permit2 payment to
+ *         `beneficiary` (transferDetails.to is NOT part of what the user
+ *         signs -- Permit2 only signs "spender may pull up to X", the
+ *         relayer picks the destination at settlement time, same trust
+ *         boundary this server already held when the recipient was a
+ *         hardcoded constant)
  *      Returns BOTH transaction hashes on success. If work fails, payment is never settled.
+ *
+ * The signature itself is produced client-side by the user's own connected
+ * wallet (wagmi's useSignTypedData) -- the server never holds or needs the
+ * payer's key, only recovers and checks the signature it receives.
  *
  * Generalized one agent at a time, each verified end-to-end before the next
  * (see agents/AGENT_LOG.md for the underlying agent lessons).
@@ -91,13 +104,31 @@ export async function POST(
     );
   }
 
+  // Body carries the buyer's chosen amount and beneficiary wallet -- both
+  // set in the "Confirm & Pay" modal before any request is sent.
+  const requestBody = await req.json().catch(() => ({}));
+
+  let amount: bigint;
+  try {
+    amount = parseUnits(String(requestBody.amount ?? "1.00"), 6); // USDT: 6 decimals
+    if (amount <= 0n) throw new Error("Amount must be greater than 0");
+  } catch {
+    return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+  }
+
+  const beneficiary = requestBody.beneficiary;
+  if (!beneficiary || !isAddress(beneficiary)) {
+    return NextResponse.json({ error: "Invalid or missing beneficiary wallet address" }, { status: 400 });
+  }
+
   const xPayment = req.headers.get("X-PAYMENT") ?? req.headers.get("PAYMENT-SIGNATURE");
 
   if (!xPayment) {
     const body = build402Body(
       agent.wallet as `0x${string}`,
       req.nextUrl.toString(),
-      `Hire ${agent.name}`
+      `Hire ${agent.name}`,
+      amount
     );
     return NextResponse.json(body, { status: 402 });
   }
@@ -115,7 +146,7 @@ export async function POST(
 
   // Step 1: VALIDATE the authorization (read-only, no blockchain writes)
   try {
-    await validatePermit2Authorization(payload);
+    await validatePermit2Authorization(payload, amount);
   } catch (err) {
     const errMsg = String(err);
     // Log server-side for debugging; send sanitized message to client
@@ -162,10 +193,11 @@ export async function POST(
     );
   }
 
-  // Step 3: CAPTURE — only if work succeeded, settle the payment
+  // Step 3: CAPTURE — only if work succeeded, settle the payment to the
+  // buyer-chosen beneficiary wallet (validated as a well-formed address above)
   let paymentTxHash: string;
   try {
-    paymentTxHash = await settlePermit2Payment(payload, agent.wallet as `0x${string}`);
+    paymentTxHash = await settlePermit2Payment(payload, beneficiary as Address);
   } catch (err) {
     const errMsg = String(err);
     console.error("[hire] Payment settlement failed after work succeeded:", errMsg);

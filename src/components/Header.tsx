@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export default function Header() {
   return (
@@ -7,7 +8,10 @@ export default function Header() {
         <Link href="/" className="text-sm font-bold tracking-tight text-bnb-gold">
           KaizenScope
         </Link>
-        <span className="text-xs font-medium text-bnb-muted">Built on BNB Chain</span>
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-medium text-bnb-muted">Built on BNB Chain</span>
+          <ConnectButton showBalance={false} />
+        </div>
       </div>
     </header>
   );
