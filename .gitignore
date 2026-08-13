@@ -45,4 +45,4 @@ next-env.d.ts
 !.env.example
 
 # Claude Code operational context (internal, not project docs)
-.claude/CLAUDE.md
+.claude/
