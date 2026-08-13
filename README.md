@@ -4,7 +4,7 @@
 
 ![Agent detail page: real metrics, onchain transactions, honest note](docs/screenshots/agent-detail.png)
 
-**Demo: hire result with two verified BSC Testnet transaction hashes** — placeholder. Connecting a wallet reveals a fixed-price "Hire" button (server-enforced, not buyer-editable) and, on success, two BscScan-verifiable transaction hashes (payment settled + agent work executed); capturing that screen needs a funded, signed wallet session against the current build, not yet recorded.
+**Demo: hire result with two verified BSC Testnet transaction hashes** — placeholder. A successful hire returns two BscScan-verifiable hashes: **payment settled** (Permit2 → the agent's own wallet, the same address quoted as `payTo` — never a buyer-chosen address) and **agent work executed** (the actual billable onchain action, e.g. supply to Venus). Capturing that screen needs a funded, signed wallet session against the current build, not yet recorded.
 
 **Live demo:** [https://bnb-agent-marketplace.vercel.app/](https://bnb-agent-marketplace.vercel.app/)
 
@@ -35,16 +35,18 @@ All 4 currently share one agentic wallet (`0x5bc1C0779fC435f5C8Dd2692E667e51716e
 
 ## How hiring works: x402
 
-Connect a wallet (MetaMask, Binance Wallet, Trust Wallet, or WalletConnect — via RainbowKit), pick an amount and a beneficiary wallet, and hire. The Permit2 authorization is signed **by the buyer's own connected wallet**, client-side — the server never holds or needs the payer's private key, only the resulting signature.
+Connect a wallet (MetaMask, Binance Wallet, Trust Wallet, or WalletConnect — via RainbowKit), confirm the price and choose a beneficiary wallet, and hire. The Permit2 authorization is signed **by the buyer's own connected wallet**, client-side — the server never holds or needs the payer's private key, only the resulting signature.
+
+The price is **fixed server-side** (`HIRE_PRICE_USDT` in `src/lib/x402.ts`, currently 1.00 USDT) and not something the client can set: an earlier build accepted a client-supplied `amount` and used it verbatim for both the quote and the validation, so a buyer could just declare their own price. The hire modal now shows the price as a static, non-editable value; the only thing the buyer chooses is the beneficiary wallet.
 
 Hiring is a real four-step x402 handshake against `POST /api/hire/[agentId]`, not a mocked paywall:
 
-1. **Choose terms.** A two-field modal ("Confirm & Pay") collects the amount (USDT) and the beneficiary wallet, pre-filled with the connected address but editable.
-2. **Request terms.** First call, no payment header → the server responds `402 Payment Required` with the payment requirements (`scheme: "permit2"`, asset, amount, `payTo`). Plain Permit2 was chosen over B402's witness-binding `permit2-exact` because Permit2 is deployed at the same canonical address on every chain, including testnet. No extra infrastructure to stand up.
-3. **Sign and hire.** The connected wallet signs a Permit2 `PermitTransferFrom` authorization via wagmi's `useSignTypedData` (domain/types verified against Uniswap's `permit2` source), and the client re-sends the same request with an `X-PAYMENT` header plus the chosen amount and beneficiary. The server:
-   - **Validates** the authorization without writing to the blockchain: recovers the signer from the signature and checks it matches the claimed payer, confirms the signed spender is our relayer, confirms the signed amount matches what was quoted, checks the nonce is unused, the deadline hasn't passed, and the payer has sufficient balance and allowance.
-   - **Executes the agent's work** (e.g. supply to Venus, fire a grid swap, grow a V3 position).
-   - **Only if work succeeds**, relays `Permit2.permitTransferFrom` onchain to capture the payment to the chosen beneficiary. (`transferDetails.to` isn't part of what the user signs — Permit2 only signs "spender may pull up to X"; the relayer picks the destination at settlement time, same trust boundary as when the recipient was a hardcoded constant.)
+1. **Choose terms.** A one-field modal ("Confirm & Pay") shows the fixed price and collects the beneficiary wallet, pre-filled with the connected address but editable. If the connected wallet hasn't approved Permit2 for USDT yet, the modal detects it and swaps the button for an inline "Approve USDT" step first.
+2. **Request terms.** First call, no payment header → the server responds `402 Payment Required` with the payment requirements (`scheme: "permit2"`, asset, amount, `payTo`), quoting its own fixed price regardless of anything the request body claims. Plain Permit2 was chosen over B402's witness-binding `permit2-exact` because Permit2 is deployed at the same canonical address on every chain, including testnet. No extra infrastructure to stand up.
+3. **Sign and hire.** The connected wallet signs a Permit2 `PermitTransferFrom` authorization via wagmi's `useSignTypedData` (domain/types verified against Uniswap's `permit2` source), and the client re-sends the same request with an `X-PAYMENT` header and the chosen beneficiary. The server:
+   - **Validates** the authorization without writing to the blockchain: recovers the signer from the signature and checks it matches the claimed payer, confirms the signed spender is our relayer, confirms the signed amount matches the server's own fixed price, checks the nonce is unused, the deadline hasn't passed, and the payer has sufficient balance and allowance. The nonce/balance/allowance checks are re-run immediately before work executes and again immediately before payment capture, since either can drift during the agent's ~30s of onchain work — if a re-check fails, the response says so plainly and, if work already ran, still returns the work hash.
+   - **Executes the agent's work** (e.g. supply to Venus, fire a grid swap, grow a V3 position), on behalf of the buyer-chosen beneficiary (logged for the audit trail; not yet routed into the position itself, since all 4 agents still share one wallet — see [Agents](#agents)).
+   - **Only if work succeeds**, relays `Permit2.permitTransferFrom` onchain to capture the payment to **the agent's own wallet** — the same address already quoted as `payTo` in step 2, never the buyer-chosen beneficiary. (`transferDetails.to` isn't part of what the user signs — Permit2 only signs "spender may pull up to X"; letting a client-controlled value pick the destination would let a buyer redirect the payment to themselves. An earlier build did exactly that; the beneficiary now only ever reaches the work step, never the payment step.)
 4. **Show proof.** The server returns both transaction hashes; the client displays them as links to BscScan.
 
 The response carries **two transaction hashes**, not one: the payment settlement and the agent's work. A hire that only charges isn't a hire. **If the agent's work fails, the payment is never captured—no charge occurs.**
@@ -57,7 +59,7 @@ res2 = POST /api/hire/:id            → { payment: { txHash }, work: { txHash }
 
 ### Atomicity note
 
-The payment is **conditional on work success**, not cryptographically atomic. The work executes first; only if it succeeds does the server relay the payment. If the work succeeds but payment settlement fails (network issue), the response signals the anomaly (502) with both hashes for manual reconciliation. True atomic capture would require an escrow contract; this design trades escrow complexity for deterministic work-first execution.
+The payment is **conditional on work success**, not cryptographically atomic. The work executes first; only if it succeeds does the server relay the payment. If the permit goes stale between validation and capture (nonce consumed, allowance or balance dropped during the agent's ~30s of work), the server catches it in a re-check before even attempting the onchain capture call and returns the work hash with a clear "retry — a fresh authorization will be generated" message (402). If settlement itself fails unexpectedly after passing that re-check (relay/network issue), the response signals the anomaly (502), still with both hashes for manual reconciliation. Either way, a failed charge never hides a successful work execution. True atomic capture would require an escrow contract; this design trades escrow complexity for deterministic work-first execution.
 
 ## Architecture
 
@@ -68,21 +70,26 @@ The payment is **conditional on work success**, not cryptographically atomic. Th
 └──────┬───────┘   Permit2 signTypedData └──────────────────┘
        │            (client-side, never a private key)
        │  POST /api/hire/[agentId]
-       │  { amount, beneficiary [, X-PAYMENT] }
+       │  { beneficiary [, X-PAYMENT] }
        ▼
 ┌──────────────────────────────────────┐
 │  x402 merchant (route.ts)            │
-│  1. no payment  → 402 + requirements │
+│  1. no payment  → 402 + fixed price  │
+│     (server-quoted, not client-set)  │
 │  2. X-PAYMENT    → validate (recover │
 │     signer, check spender/amount/    │
-│     nonce/deadline/balance/allowance)│
-│     → work → capture                 │
+│     nonce/deadline/balance/allowance,│
+│     re-checked before work AND before│
+│     capture) → work → capture        │
 └──────┬─────────────────┬─────────────┘
        │                 │
 Permit2.permitTransferFrom   agent work action
 (payment settlement,          (supplyToVenus,
- to buyer's chosen             fireGridSwap,
- beneficiary)                  growPositionB, …)
+ always to the agent's         fireGridSwap,
+ own wallet -- same            growPositionB, …)
+ address quoted as payTo,      on behalf of the
+ NEVER the buyer-chosen        buyer-chosen
+ beneficiary)                  beneficiary
        │                 │
        ▼                 ▼
 ┌────────────────────────────────────┐
