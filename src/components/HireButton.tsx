@@ -55,7 +55,11 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
       // MetaMask/WalletConnect wired up), so this can't actually happen on the
       // client -- documented fallback, server-side signing via a Server Action.
       setStatus("signing");
-      const xPaymentHeader = await signHirePayment(requirement);
+      const signResult = await signHirePayment(requirement);
+      if ("error" in signResult) {
+        throw new Error(signResult.error);
+      }
+      const xPaymentHeader = signResult.header;
 
       // Step 3: real second fetch, same endpoint, now WITH the payment header.
       setStatus("settling");

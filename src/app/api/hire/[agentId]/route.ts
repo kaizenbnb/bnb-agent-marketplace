@@ -5,6 +5,7 @@ import { build402Body, decodeXPayment, validatePermit2Authorization, settlePermi
 import { supplyToVenus, addCollateralToVenus } from "@/lib/venus";
 import { fireGridSwap } from "@/lib/pancake";
 import { growPositionB, collectFeesPositionB } from "@/lib/v3";
+import { isConfigComplete } from "@/lib/config";
 
 /**
  * The x402 "merchant" for hiring an agent. Real three-step handshake:
@@ -61,6 +62,17 @@ export async function POST(
   { params }: { params: Promise<{ agentId: string }> }
 ) {
   const { agentId } = await params;
+
+  // Config check first: fail clean (503, no stack trace) instead of an
+  // uncaught 500 deep inside signing/settlement when an env var is missing.
+  if (!isConfigComplete()) {
+    console.error("[hire] Server misconfigured: one or more required env vars are missing");
+    return NextResponse.json(
+      { error: "Server is not fully configured. Check /api/health for details." },
+      { status: 503 }
+    );
+  }
+
   const ip = getClientIp(req);
 
   // Rate limit: max 5 requests per IP per hour
