@@ -61,6 +61,10 @@ res2 = POST /api/hire/:id            → { payment: { txHash }, work: { txHash }
 
 The payment is **conditional on work success**, not cryptographically atomic. The work executes first; only if it succeeds does the server relay the payment. If the permit goes stale between validation and capture (nonce consumed, allowance or balance dropped during the agent's ~30s of work), the server catches it in a re-check before even attempting the onchain capture call and returns the work hash with a clear "retry — a fresh authorization will be generated" message (402). If settlement itself fails unexpectedly after passing that re-check (relay/network issue), the response signals the anomaly (502), still with both hashes for manual reconciliation. Either way, a failed charge never hides a successful work execution. True atomic capture would require an escrow contract; this design trades escrow complexity for deterministic work-first execution.
 
+## Known limitations
+
+- Payment settlement may fail if the Permit2 authorization expires during the ~30s execution window. The agent work transaction is always verifiable on BSC Testnet regardless.
+
 ## Architecture
 
 ```

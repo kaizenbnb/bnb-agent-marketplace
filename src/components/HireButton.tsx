@@ -204,19 +204,23 @@ export default function HireButton({ agentId, agentName }: { agentId: string; ag
 
       {status === "error" && (
         <div className="mt-3 space-y-2">
-          <p className="text-xs text-red-400">{error}</p>
-          {partialWorkTx && (
-            <a
-              href={`${EXPLORER_TX_BASE}${partialWorkTx}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between rounded-lg border border-bnb-line bg-bnb-card px-4 py-3 text-sm hover:border-bnb-gold"
-            >
-              <span className="text-bnb-text/80">Agent work executed (payment not captured)</span>
-              <span className="font-mono text-xs text-bnb-gold">
-                {partialWorkTx.slice(0, 10)}…{partialWorkTx.slice(-8)}
-              </span>
-            </a>
+          {partialWorkTx ? (
+            <>
+              <a
+                href={`${EXPLORER_TX_BASE}${partialWorkTx}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between rounded-lg border border-green-500/40 bg-bnb-card px-4 py-3 text-sm hover:border-green-400"
+              >
+                <span className="font-medium text-green-400">Agent work verified onchain</span>
+                <span className="font-mono text-xs text-bnb-gold">
+                  {partialWorkTx.slice(0, 10)}…{partialWorkTx.slice(-8)}
+                </span>
+              </a>
+              <p className="text-[11px] text-bnb-muted">Payment not captured: {error}</p>
+            </>
+          ) : (
+            <p className="text-xs text-red-400">{error}</p>
           )}
         </div>
       )}
